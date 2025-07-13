@@ -11,12 +11,12 @@ import {
   Button,
   Card,
   CardContent,
-  Paper
+  Paper,
 } from '@mui/material';
-import { 
+import {
   Home as HomeIcon,
   Info as InfoIcon,
-  Settings as SettingsIcon 
+  Settings as SettingsIcon,
 } from '@mui/icons-material';
 
 // Create a theme instance
@@ -43,17 +43,14 @@ const App: React.FC = () => {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Box sx={{ flexGrow: 1 }}>
-      
-      <Button 
-        variant="contained" 
-        color="primary" 
-        onClick={handleClick}
-        sx={{ mr: 2 }}
+        <Button
+          variant='contained'
+          color='primary'
+          onClick={handleClick}
+          sx={{ mr: 2 }}
         >
-        Primary Button
-      </Button>
-
-        
+          Primary Button
+        </Button>
       </Box>
     </ThemeProvider>
   );
