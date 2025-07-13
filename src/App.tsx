@@ -1,26 +1,62 @@
 import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import {
+  ThemeProvider,
+  createTheme,
+  CssBaseline,
+  AppBar,
+  Toolbar,
+  Typography,
+  Container,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Paper
+} from '@mui/material';
+import { 
+  Home as HomeIcon,
+  Info as InfoIcon,
+  Settings as SettingsIcon 
+} from '@mui/icons-material';
 
-function App() {
+// Create a theme instance
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: '#1976d2',
+    },
+    secondary: {
+      main: '#dc004e',
+    },
+  },
+  typography: {
+    fontFamily: 'Roboto, Arial, sans-serif',
+  },
+});
+
+const App: React.FC = () => {
+  const handleClick = () => {
+    console.log('Button clicked!');
+  };
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Box sx={{ flexGrow: 1 }}>
+      
+      <Button 
+        variant="contained" 
+        color="primary" 
+        onClick={handleClick}
+        sx={{ mr: 2 }}
         >
-          Learn React
-        </a>
-      </header>
-    </div>
+        Primary Button
+      </Button>
+
+        
+      </Box>
+    </ThemeProvider>
   );
-}
+};
 
 export default App;
