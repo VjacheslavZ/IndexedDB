@@ -1,43 +1,3 @@
-export class Logger {
-  #output = {
-    textContent: '',
-  };
-
-  constructor(outputId) {
-    // this.#output = document.getElementById(outputId);
-  }
-
-  log(...args) {
-    const lines = args.map(Logger.#serialize);
-    this.#output.textContent += lines.join(' ') + '\n';
-    // console.log(this.#output.textContent);
-    // this.#output.scrollTop = this.#output.scrollHeight;
-  }
-
-  get output() {
-    return this.#output;
-  }
-
-  static #serialize(x) {
-    return typeof x === 'object' ? JSON.stringify(x, null, 2) : x;
-  }
-}
-
-// export const logger = new Logger('output');
-
-export const _db = await new Promise((resolve, reject) => {
-  const request = indexedDB.open('Example', 1);
-  request.onupgradeneeded = () => {
-    const db = request.result;
-    if (!db.objectStoreNames.contains('user')) {
-      db.createObjectStore('user', { keyPath: 'id', autoIncrement: true });
-    }
-  };
-  request.onsuccess = () => resolve(request.result);
-  request.onerror = () => reject(request.error);
-});
-// ------------------------------------------------------------
-
 export class IndexDB {
   #db = null;
   #dbName = null;
@@ -48,16 +8,18 @@ export class IndexDB {
     this.#version = version;
   }
 
-  async init(storeName) {
+  async init(stores = []) {
     this.#db = await new Promise((resolve, reject) => {
       const request = indexedDB.open(this.#dbName, this.#version);
       request.onupgradeneeded = () => {
         const db = request.result;
-        if (!db.objectStoreNames.contains(storeName)) {
-          db.createObjectStore(storeName, {
-            keyPath: 'id',
-            autoIncrement: true,
-          });
+        for (const { storeName, keyPath, autoIncrement } of stores) {
+          if (!db.objectStoreNames.contains(storeName)) {
+            db.createObjectStore(storeName, {
+              keyPath,
+              autoIncrement,
+            });
+          }
         }
       };
 
