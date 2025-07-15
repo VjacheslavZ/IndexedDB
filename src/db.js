@@ -2,18 +2,22 @@ export class IndexDB {
   #db = null;
   #dbName = null;
   #version = null;
+  #stores = null;
 
-  constructor(dbName, version) {
-    this.#dbName = dbName;
-    this.#version = version;
+  constructor(options) {
+    this.#dbName = options.name;
+    this.#version = options.version;
+    this.#stores = options.stores;
   }
 
-  async init(stores = []) {
+  async init() {
     this.#db = await new Promise((resolve, reject) => {
       const request = indexedDB.open(this.#dbName, this.#version);
       request.onupgradeneeded = () => {
         const db = request.result;
-        for (const { storeName, keyPath, autoIncrement } of stores) {
+        for (const [storeName, { keyPath, autoIncrement }] of Object.entries(
+          this.#stores
+        )) {
           if (!db.objectStoreNames.contains(storeName)) {
             db.createObjectStore(storeName, {
               keyPath,
@@ -41,9 +45,17 @@ export class IndexDB {
     return new Promise((resolve, reject) => {
       const tx = this.#db.transaction(storeName, 'readonly');
       const getAllRequest = tx.objectStore(storeName).getAll();
-
       tx.oncomplete = () => resolve(getAllRequest.result);
       tx.onerror = () => reject(getAllRequest.error);
+    });
+  }
+
+  async get(storeName, key) {
+    return new Promise((resolve, reject) => {
+      const tx = this.#db.transaction(storeName, 'readonly');
+      const getRequest = tx.objectStore(storeName).get(key);
+      tx.oncomplete = () => resolve(getRequest.result);
+      tx.onerror = () => reject(getRequest.error);
     });
   }
 

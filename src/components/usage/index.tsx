@@ -1,31 +1,28 @@
-import { FC } from 'react';
+import { FC, useEffect } from 'react';
 
 import { IndexDB } from '../../db';
 import { Box, Button } from '@mui/material';
 
-const Usage: FC = () => {
-  const customersIdb = new IndexDB('Customers', 1);
-  customersIdb.init([
-    {
-      storeName: 'user',
-      keyPath: 'id',
-      autoIncrement: true,
-    },
-    {
-      storeName: 'baned_user',
-      keyPath: 'id',
-      autoIncrement: true,
-    },
-  ]);
+const customersIdb = new IndexDB({
+  name: 'Customers',
+  version: 1,
+  stores: {
+    user: { keyPath: 'id', autoIncrement: true },
+    baned_user: { keyPath: 'id', autoIncrement: true },
+  },
+});
 
-  const adminsIdb = new IndexDB('Admins', 1);
-  adminsIdb.init([
-    {
-      storeName: 'admin',
-      keyPath: 'id',
-      autoIncrement: true,
-    },
-  ]);
+const Usage: FC = () => {
+  useEffect(() => {
+    const init = async () => {
+      try {
+        await customersIdb.init();
+      } catch (error) {
+        console.log('Init failed', error);
+      }
+    };
+    init();
+  }, []);
 
   const addUser = async () => {
     const name = prompt('Enter user name:');
@@ -44,7 +41,6 @@ const Usage: FC = () => {
 
   const getUsers = async () => {
     try {
-      console.log('Getting users');
       const users = await customersIdb.getAll('user');
       console.log('Users :', users);
     } catch (error) {
@@ -76,7 +72,13 @@ const Usage: FC = () => {
     const result = await customersIdb.openCursor('user', (user: any) => {
       if (user.age >= 18) return user;
     });
+    console.log('result', result);
+  };
 
+  const getOneUser = async () => {
+    const id = parseInt(prompt('Enter user id:') ?? '0', 10);
+    if (!id) return;
+    const result = await customersIdb.get('user', id);
     console.log('result', result);
   };
 
@@ -91,6 +93,15 @@ const Usage: FC = () => {
           onClick={addUser}
         >
           Add User
+        </Button>
+        <Button
+          sx={{ mr: 2 }}
+          variant='contained'
+          color='primary'
+          id='get'
+          onClick={getOneUser}
+        >
+          Get one
         </Button>
         <Button
           sx={{ mr: 2 }}
