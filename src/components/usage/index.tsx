@@ -8,7 +8,10 @@ import FileIcon from '@mui/icons-material/InsertDriveFile';
 
 import { IndexDB } from '../../lib/indexed_db';
 import { Box, Button } from '@mui/material';
-import FileSystemStorage from '../../lib/opfs.js';
+import FileSystemStorage from '../../lib/file_system_storage.js';
+import { FileSystemWeb } from '../../lib/file_system_web.js';
+
+const fsWeb = new FileSystemWeb();
 
 const customersIdb = new IndexDB({
   name: 'Customers',
@@ -96,15 +99,24 @@ const Usage: FC = () => {
     console.log('result', result);
   };
 
+  // File system usage
   const uploadFile = async () => {
     try {
-      const [fileHandle] = await (window as any).showOpenFilePicker();
-      const file = await fileHandle.getFile();
-
+      const file = await fsWeb.openFilePicker();
       await fs.createFile(file);
       console.log('Uploaded');
     } catch (error) {
       console.log('Upload failed', error);
+    }
+  };
+
+  const saveFile = async () => {
+    try {
+      const result = await fsWeb.saveFilePicker();
+      console.log(result);
+      console.log('Saved');
+    } catch (error) {
+      console.log('Save failed', error);
     }
   };
 
@@ -205,6 +217,14 @@ const Usage: FC = () => {
           onClick={readFile}
         >
           Read file
+        </Button>
+        <Button
+          sx={{ mr: 2 }}
+          variant='contained'
+          color='primary'
+          onClick={saveFile}
+        >
+          Save File
         </Button>
         <Button
           sx={{ mr: 2 }}
