@@ -36,17 +36,8 @@ export class IndexDB {
     return new Promise((resolve, reject) => {
       const tx = this.#db.transaction(storeName, 'readwrite');
       const addRequest = tx.objectStore(storeName).add(data);
-      tx.oncomplete = () => resolve(addRequest.result);
-      tx.onerror = () => reject(tx.error);
-    });
-  }
-
-  async getAll(storeName) {
-    return new Promise((resolve, reject) => {
-      const tx = this.#db.transaction(storeName, 'readonly');
-      const getAllRequest = tx.objectStore(storeName).getAll();
-      tx.oncomplete = () => resolve(getAllRequest.result);
-      tx.onerror = () => reject(getAllRequest.error);
+      addRequest.oncomplete = () => resolve(addRequest.result);
+      addRequest.onerror = () => reject(tx.error);
     });
   }
 
@@ -59,6 +50,15 @@ export class IndexDB {
     });
   }
 
+  async getAll(storeName) {
+    return new Promise((resolve, reject) => {
+      const tx = this.#db.transaction(storeName, 'readonly');
+      const getAllRequest = tx.objectStore(storeName).getAll();
+      tx.oncomplete = () => resolve(getAllRequest.result);
+      tx.onerror = () => reject(getAllRequest.error);
+    });
+  }
+
   async put(storeName, key, data) {
     return new Promise((resolve, reject) => {
       const tx = this.#db.transaction(storeName, 'readwrite');
@@ -66,7 +66,10 @@ export class IndexDB {
       const getRequest = store.get(key);
       getRequest.onsuccess = () => {
         const { result } = getRequest;
-        if (!result) return;
+        if (!result) {
+          reject(new Error(`Key "${key}" not found in "${storeName}"`));
+          return;
+        }
         const updated = Object.assign(result, data);
         store.put(updated);
         tx.oncomplete = () => resolve(result);

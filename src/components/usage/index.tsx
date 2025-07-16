@@ -1,7 +1,14 @@
-import { FC, useEffect } from 'react';
+import { FC, useEffect, useState } from 'react';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import FolderIcon from '@mui/icons-material/Folder';
+import ListItemText from '@mui/material/ListItemText';
+import FileIcon from '@mui/icons-material/InsertDriveFile';
 
-import { IndexDB } from '../../db';
+import { IndexDB } from '../../lib/indexed_db';
 import { Box, Button } from '@mui/material';
+import FileSystemStorage from '../../lib/opfs.js';
 
 const customersIdb = new IndexDB({
   name: 'Customers',
@@ -12,11 +19,18 @@ const customersIdb = new IndexDB({
   },
 });
 
+const fs = new FileSystemStorage();
+
 const Usage: FC = () => {
+  const [files, setFiles] = useState<{ name: string; kind: string }[]>([]);
+
   useEffect(() => {
     const init = async () => {
       try {
         await customersIdb.init();
+        await fs.init();
+        const files = await fs.getListFiles();
+        setFiles(files);
       } catch (error) {
         console.log('Init failed', error);
       }
@@ -82,6 +96,31 @@ const Usage: FC = () => {
     console.log('result', result);
   };
 
+  const uploadFile = async () => {
+    try {
+      const [fileHandle] = await (window as any).showOpenFilePicker();
+      const file = await fileHandle.getFile();
+
+      await fs.createFile(file);
+      console.log('Uploaded');
+    } catch (error) {
+      console.log('Upload failed', error);
+    }
+  };
+
+  const deleteFile = async () => {
+    const fileName = prompt('Enter file name:');
+    if (!fileName) return;
+    await fs.deleteFile(fileName);
+  };
+
+  const readFile = async () => {
+    const fileName = prompt('Enter file name:');
+    if (!fileName) return;
+    const content = await fs.readFile(fileName);
+    console.log('content', content);
+  };
+
   return (
     <div>
       <Box sx={{ flexGrow: 1 }}>
@@ -139,8 +178,7 @@ const Usage: FC = () => {
         >
           Find Adults
         </Button>
-      </Box>
-      <Box sx={{ flexGrow: 1 }}>
+
         <Button
           sx={{ mr: 2 }}
           variant='contained'
@@ -150,6 +188,45 @@ const Usage: FC = () => {
           Ban User
         </Button>
       </Box>
+
+      <Box sx={{ flexGrow: 1 }}>
+        <Button
+          sx={{ mr: 2 }}
+          variant='contained'
+          color='primary'
+          onClick={uploadFile}
+        >
+          Upload File
+        </Button>
+        <Button
+          sx={{ mr: 2 }}
+          variant='contained'
+          color='primary'
+          onClick={readFile}
+        >
+          Read file
+        </Button>
+        <Button
+          sx={{ mr: 2 }}
+          variant='contained'
+          color='secondary'
+          onClick={deleteFile}
+        >
+          Delete File
+        </Button>
+      </Box>
+      <div>
+        <List>
+          {files.map(({ name, kind }) => (
+            <ListItem key={name}>
+              <ListItemIcon>
+                {kind === 'file' ? <FileIcon /> : <FolderIcon />}
+              </ListItemIcon>
+              <ListItemText>{name}</ListItemText>
+            </ListItem>
+          ))}
+        </List>
+      </div>
     </div>
   );
 };
