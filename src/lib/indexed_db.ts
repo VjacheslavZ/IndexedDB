@@ -1,13 +1,15 @@
-export class IndexDB {
-  #db = null;
-  #dbName = null;
-  #version = null;
-  #stores = null;
+type TStore = Record<string, { keyPath: string; autoIncrement: boolean }>;
+export class IndexedDB {
+  #db!: IDBDatabase;
+  #dbName: string;
+  #version: number;
+  #stores: TStore;
 
-  constructor(options) {
+  constructor(options: { name: string; version: number; stores: TStore }) {
     this.#dbName = options.name;
     this.#version = options.version;
     this.#stores = options.stores;
+    this.init();
   }
 
   async init() {
@@ -32,16 +34,16 @@ export class IndexDB {
     });
   }
 
-  async add(storeName, data) {
+  async add(storeName: string, data: unknown) {
     return new Promise((resolve, reject) => {
       const tx = this.#db.transaction(storeName, 'readwrite');
       const addRequest = tx.objectStore(storeName).add(data);
-      addRequest.oncomplete = () => resolve(addRequest.result);
+      addRequest.onsuccess = () => resolve(addRequest.result);
       addRequest.onerror = () => reject(tx.error);
     });
   }
 
-  async get(storeName, key) {
+  async get(storeName: string, key: IDBValidKey) {
     return new Promise((resolve, reject) => {
       const tx = this.#db.transaction(storeName, 'readonly');
       const getRequest = tx.objectStore(storeName).get(key);
@@ -50,7 +52,7 @@ export class IndexDB {
     });
   }
 
-  async getAll(storeName) {
+  async getAll(storeName: string) {
     return new Promise((resolve, reject) => {
       const tx = this.#db.transaction(storeName, 'readonly');
       const getAllRequest = tx.objectStore(storeName).getAll();
@@ -59,7 +61,7 @@ export class IndexDB {
     });
   }
 
-  async put(storeName, key, data) {
+  async put(storeName: string, key: IDBValidKey, data: unknown) {
     return new Promise((resolve, reject) => {
       const tx = this.#db.transaction(storeName, 'readwrite');
       const store = tx.objectStore(storeName);
@@ -78,7 +80,7 @@ export class IndexDB {
     });
   }
 
-  async delete(storeName, key) {
+  async delete(storeName: string, key: IDBValidKey) {
     return new Promise((resolve, reject) => {
       const deleteRequest = this.#db
         .transaction(storeName, 'readwrite')
@@ -90,16 +92,16 @@ export class IndexDB {
     });
   }
 
-  async openCursor(storeName, callback) {
+  async openCursor(storeName: string, callback: (value: unknown) => unknown) {
     return new Promise((resolve, reject) => {
       const cursorRequest = this.#db
         .transaction(storeName, 'readonly')
         .objectStore(storeName)
         .openCursor();
 
-      const results = [];
-      cursorRequest.onsuccess = event => {
-        const cursor = event.target.result;
+      const results: unknown[] = [];
+      cursorRequest.onsuccess = (event: Event) => {
+        const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
         if (!cursor) return resolve(results);
         const result = callback(cursor.value);
         if (result) results.push(result);

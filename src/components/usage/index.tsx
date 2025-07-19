@@ -6,14 +6,14 @@ import FolderIcon from '@mui/icons-material/Folder';
 import ListItemText from '@mui/material/ListItemText';
 import FileIcon from '@mui/icons-material/InsertDriveFile';
 
-import { IndexDB } from '../../lib/indexed_db';
+import { IndexedDB } from '../../lib/indexed_db';
 import { Box, Button } from '@mui/material';
 import FileSystemStorage from '../../lib/file_system_storage.js';
 import { FileSystemWeb } from '../../lib/file_system_web.js';
 
 const fsWeb = new FileSystemWeb();
 
-const customersIdb = new IndexDB({
+const customersIdb = new IndexedDB({
   name: 'Customers',
   version: 1,
   stores: {
@@ -30,7 +30,6 @@ const Usage: FC = () => {
   useEffect(() => {
     const init = async () => {
       try {
-        await customersIdb.init();
         await fs.init();
         const files = await fs.getListFiles();
         setFiles(files);
