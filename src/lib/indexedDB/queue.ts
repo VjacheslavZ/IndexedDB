@@ -28,20 +28,20 @@ class TransactionQueue {
 
     const next = this.queue[0];
 
-    if (this.#isActiveReadWriteMode && next?.mode === 'readonly') {
-      return;
-    }
+    const isReadwriteActive = this.#isActiveReadWriteMode;
+    const isNextReadonly = next?.mode === 'readonly';
+    if (isReadwriteActive && isNextReadonly) return;
 
     this.queue.shift();
     this.#isPending = true;
 
     try {
-      await new Promise(res => {
-        let lockMs = 0;
-        if (next.mode === 'readwrite') lockMs = 1000 * 10;
-
-        setTimeout(() => res(true), lockMs);
-      });
+      //   await new Promise(res => {
+      //     let lockMs = 0;
+      //     if (next.mode === 'readwrite') lockMs = 1000 * 10;
+      //     else lockMs = 1000 * 1;
+      //     setTimeout(() => res(true), lockMs);
+      //   });
 
       const tx = this.#db.transaction(next.storesNames, next.mode);
       tx.addEventListener('complete', (e: Event) => {
