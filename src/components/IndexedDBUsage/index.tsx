@@ -1,7 +1,7 @@
 import { FC } from 'react';
 import { Button, ButtonGroup, Grid } from '@mui/material';
 
-import { IndexedDB } from '../../lib/indexed_db';
+import { IndexedDB } from '../../lib/indexedDB';
 
 const customersIdb = new IndexedDB({
   name: 'Customers',
