@@ -1,9 +1,10 @@
 import React from 'react';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
 
-import Usage from './components/usage';
+import IndexedDBUsage from './components/IndexedDBUsage';
+import FileSystemAPIUsage from './components/FileSystemAPIUsage';
+import OriginPrivateFileSystemUsage from './components/OriginPrivateFileSystemUsage';
 
-// Create a theme instance
 const theme = createTheme({
   palette: {
     primary: {
@@ -22,7 +23,10 @@ const App: React.FC = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Usage />
+
+      <IndexedDBUsage />
+      <FileSystemAPIUsage />
+      <OriginPrivateFileSystemUsage />
     </ThemeProvider>
   );
 };

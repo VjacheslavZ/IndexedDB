@@ -1,14 +1,28 @@
 type TStore = Record<string, { keyPath: string; autoIncrement: boolean }>;
+type TTransactionMode = 'readonly' | 'readwrite';
+
+interface IQueTransaction {
+  mode: TTransactionMode;
+  storesNames: string[];
+  resolve: (tx: IDBTransaction) => void;
+  reject: (error: unknown) => void;
+}
+
 export class IndexedDB {
   #db!: IDBDatabase;
   #dbName: string;
   #version: number;
   #stores: TStore;
 
+  #queue: IQueTransaction[] = [];
+  #isActiveReadWriteMode = false;
+  #isPending = false;
+
   constructor(options: { name: string; version: number; stores: TStore }) {
     this.#dbName = options.name;
     this.#version = options.version;
     this.#stores = options.stores;
+
     this.init();
   }
 
@@ -34,9 +48,75 @@ export class IndexedDB {
     });
   }
 
-  async add(storeName: string, data: unknown) {
+  async createTransaction(
+    storesNames: string[],
+    mode: TTransactionMode
+  ): Promise<IDBTransaction> {
     return new Promise((resolve, reject) => {
-      const tx = this.#db.transaction(storeName, 'readwrite');
+      this.#queue.push({ storesNames, mode, resolve, reject });
+      this.#handleQueue();
+    });
+  }
+
+  async #handleQueue() {
+    console.log('handleQueue', {
+      isPending: this.#isPending,
+      queueLength: this.#queue.length,
+      isActiveReadWriteMode: this.#isActiveReadWriteMode,
+    });
+    if (this.#isPending || this.#queue.length === 0) return;
+
+    const next = this.#queue[0];
+
+    if (this.#isActiveReadWriteMode && next?.mode === 'readonly') {
+      return;
+    }
+
+    this.#queue.shift();
+    this.#isPending = true;
+
+    try {
+      await new Promise(res => {
+        let lockMs = 0;
+        if (next.mode === 'readwrite') lockMs = 1000 * 10;
+        else lockMs = 1000 * 0;
+        setTimeout(() => res(true), lockMs);
+      });
+
+      const tx = this.#db.transaction(next.storesNames, next.mode);
+      tx.addEventListener('complete', (e: Event) => {
+        const { target, timeStamp } = e;
+        console.log('timeStamp', timeStamp);
+        console.log('target', (target as IDBTransaction)?.mode);
+      });
+
+      if (next.mode === 'readwrite') this.#isActiveReadWriteMode = true;
+
+      const oncomplete = () => {
+        if (next.mode === 'readwrite') this.#isActiveReadWriteMode = false;
+        this.#isPending = false;
+        this.#handleQueue();
+      };
+
+      tx.oncomplete = oncomplete;
+      // tx.onabort = oncomplete;
+      tx.onerror = () => {
+        next.reject(tx.error);
+        this.#isPending = false;
+        this.#handleQueue();
+      };
+
+      next.resolve(tx);
+    } catch (error) {
+      next.reject(error);
+      this.#isPending = false;
+      this.#handleQueue();
+    }
+  }
+
+  async add(storeName: string, data: unknown) {
+    return new Promise(async (resolve, reject) => {
+      const tx = await this.createTransaction([storeName], 'readwrite');
       const addRequest = tx.objectStore(storeName).add(data);
       addRequest.onsuccess = () => resolve(addRequest.result);
       addRequest.onerror = () => reject(tx.error);
@@ -44,26 +124,28 @@ export class IndexedDB {
   }
 
   async get(storeName: string, key: IDBValidKey) {
-    return new Promise((resolve, reject) => {
-      const tx = this.#db.transaction(storeName, 'readonly');
-      const getRequest = tx.objectStore(storeName).get(key);
-      tx.oncomplete = () => resolve(getRequest.result);
-      tx.onerror = () => reject(getRequest.error);
+    return new Promise(async (resolve, reject) => {
+      const tx = await this.createTransaction([storeName], 'readonly');
+      const store = tx.objectStore(storeName);
+      const getRequest = store.get(key);
+      getRequest.onsuccess = () => resolve(getRequest.result);
+      getRequest.onerror = () => reject(getRequest.error);
     });
   }
 
   async getAll(storeName: string) {
-    return new Promise((resolve, reject) => {
-      const tx = this.#db.transaction(storeName, 'readonly');
-      const getAllRequest = tx.objectStore(storeName).getAll();
-      tx.oncomplete = () => resolve(getAllRequest.result);
-      tx.onerror = () => reject(getAllRequest.error);
+    return new Promise(async (resolve, reject) => {
+      const tx = await this.createTransaction([storeName], 'readonly');
+      const store = tx.objectStore(storeName);
+      const getAllRequest = store.getAll();
+      getAllRequest.onsuccess = () => resolve(getAllRequest.result);
+      getAllRequest.onerror = () => reject(getAllRequest.error);
     });
   }
 
   async put(storeName: string, key: IDBValidKey, data: unknown) {
-    return new Promise((resolve, reject) => {
-      const tx = this.#db.transaction(storeName, 'readwrite');
+    return new Promise(async (resolve, reject) => {
+      const tx = await this.createTransaction([storeName], 'readwrite');
       const store = tx.objectStore(storeName);
       const getRequest = store.get(key);
       getRequest.onsuccess = () => {
@@ -81,23 +163,18 @@ export class IndexedDB {
   }
 
   async delete(storeName: string, key: IDBValidKey) {
-    return new Promise((resolve, reject) => {
-      const deleteRequest = this.#db
-        .transaction(storeName, 'readwrite')
-        .objectStore(storeName)
-        .delete(key);
-
+    return new Promise(async (resolve, reject) => {
+      const tx = await this.createTransaction([storeName], 'readwrite');
+      const deleteRequest = tx.objectStore(storeName).delete(key);
       deleteRequest.onsuccess = () => resolve(true);
       deleteRequest.onerror = () => reject(deleteRequest.error);
     });
   }
 
   async openCursor(storeName: string, callback: (value: unknown) => unknown) {
-    return new Promise((resolve, reject) => {
-      const cursorRequest = this.#db
-        .transaction(storeName, 'readonly')
-        .objectStore(storeName)
-        .openCursor();
+    return new Promise(async (resolve, reject) => {
+      const tx = await this.createTransaction([storeName], 'readonly');
+      const cursorRequest = tx.objectStore(storeName).openCursor();
 
       const results: unknown[] = [];
       cursorRequest.onsuccess = (event: Event) => {
