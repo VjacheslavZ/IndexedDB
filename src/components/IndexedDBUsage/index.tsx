@@ -10,6 +10,7 @@ const customersIdb = new IndexedDB({
     user: { keyPath: 'id', autoIncrement: true },
     baned_user: { keyPath: 'id', autoIncrement: true },
   },
+  isUseTransactionQueue: true,
 });
 
 const IndexedDBUsage: FC = () => {

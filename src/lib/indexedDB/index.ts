@@ -1,12 +1,6 @@
-type TStore = Record<string, { keyPath: string; autoIncrement: boolean }>;
-type TTransactionMode = 'readonly' | 'readwrite';
+import TransactionQueue, { TTransactionMode } from './queue';
 
-interface IQueTransaction {
-  mode: TTransactionMode;
-  storesNames: string[];
-  resolve: (tx: IDBTransaction) => void;
-  reject: (error: unknown) => void;
-}
+type TStore = Record<string, { keyPath: string; autoIncrement: boolean }>;
 
 export class IndexedDB {
   #db!: IDBDatabase;
@@ -14,16 +8,25 @@ export class IndexedDB {
   #version: number;
   #stores: TStore;
 
-  #queue: IQueTransaction[] = [];
-  #isActiveReadWriteMode = false;
-  #isPending = false;
+  #isUseTransactionQueue = false;
+  #transactionQueue: TransactionQueue | null = null;
 
-  constructor(options: { name: string; version: number; stores: TStore }) {
+  constructor(options: {
+    name: string;
+    version: number;
+    stores: TStore;
+    isUseTransactionQueue: boolean;
+  }) {
     this.#dbName = options.name;
     this.#version = options.version;
     this.#stores = options.stores;
+    this.#isUseTransactionQueue = Boolean(options.isUseTransactionQueue);
 
-    this.init();
+    this.init().then(() => {
+      if (this.#isUseTransactionQueue) {
+        this.#transactionQueue = new TransactionQueue(this.#db);
+      }
+    });
   }
 
   async init() {
@@ -31,14 +34,10 @@ export class IndexedDB {
       const request = indexedDB.open(this.#dbName, this.#version);
       request.onupgradeneeded = () => {
         const db = request.result;
-        for (const [storeName, { keyPath, autoIncrement }] of Object.entries(
-          this.#stores
-        )) {
+        const stores = Object.entries(this.#stores);
+        for (const [storeName, { keyPath, autoIncrement }] of stores) {
           if (!db.objectStoreNames.contains(storeName)) {
-            db.createObjectStore(storeName, {
-              keyPath,
-              autoIncrement,
-            });
+            db.createObjectStore(storeName, { keyPath, autoIncrement });
           }
         }
       };
@@ -52,66 +51,22 @@ export class IndexedDB {
     storesNames: string[],
     mode: TTransactionMode
   ): Promise<IDBTransaction> {
-    return new Promise((resolve, reject) => {
-      this.#queue.push({ storesNames, mode, resolve, reject });
-      this.#handleQueue();
-    });
-  }
-
-  async #handleQueue() {
-    console.log('handleQueue', {
-      isPending: this.#isPending,
-      queueLength: this.#queue.length,
-      isActiveReadWriteMode: this.#isActiveReadWriteMode,
-    });
-    if (this.#isPending || this.#queue.length === 0) return;
-
-    const next = this.#queue[0];
-
-    if (this.#isActiveReadWriteMode && next?.mode === 'readonly') {
-      return;
+    if (this.#isUseTransactionQueue && this.#transactionQueue) {
+      return new Promise((resolve, reject) => {
+        this.#transactionQueue!.queue.push({
+          storesNames,
+          mode,
+          resolve,
+          reject,
+        });
+        this.#transactionQueue!.handleQueue();
+      });
     }
 
-    this.#queue.shift();
-    this.#isPending = true;
-
-    try {
-      await new Promise(res => {
-        let lockMs = 0;
-        if (next.mode === 'readwrite') lockMs = 1000 * 10;
-        else lockMs = 1000 * 0;
-        setTimeout(() => res(true), lockMs);
-      });
-
-      const tx = this.#db.transaction(next.storesNames, next.mode);
-      tx.addEventListener('complete', (e: Event) => {
-        const { target, timeStamp } = e;
-        console.log('timeStamp', timeStamp);
-        console.log('target', (target as IDBTransaction)?.mode);
-      });
-
-      if (next.mode === 'readwrite') this.#isActiveReadWriteMode = true;
-
-      const oncomplete = () => {
-        if (next.mode === 'readwrite') this.#isActiveReadWriteMode = false;
-        this.#isPending = false;
-        this.#handleQueue();
-      };
-
-      tx.oncomplete = oncomplete;
-      // tx.onabort = oncomplete;
-      tx.onerror = () => {
-        next.reject(tx.error);
-        this.#isPending = false;
-        this.#handleQueue();
-      };
-
-      next.resolve(tx);
-    } catch (error) {
-      next.reject(error);
-      this.#isPending = false;
-      this.#handleQueue();
-    }
+    return new Promise(resolve => {
+      const tx = this.#db.transaction(storesNames, mode);
+      resolve(tx);
+    });
   }
 
   async add(storeName: string, data: unknown) {
