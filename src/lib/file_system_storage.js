@@ -1,7 +1,10 @@
 // TODO add error aggregation and escalation
-
 export default class FileSystemStorage {
   #rootDir = null;
+
+  constructor() {
+    this.init();
+  }
 
   async init() {
     this.#rootDir = await navigator.storage.getDirectory();
@@ -28,13 +31,22 @@ export default class FileSystemStorage {
   }
 
   async createFile(file) {
-    const handle = await this.#rootDir.getFileHandle(file.name, {
-      create: true,
-    });
-    const contents = await file.arrayBuffer();
-    const writable = await handle.createWritable();
-    await writable.write(new Uint8Array(contents));
-    await writable.close();
+    try {
+      const handle = await this.#rootDir.getFileHandle(file.name, {
+        create: true,
+      });
+      const contents = await file.arrayBuffer();
+      const writable = await handle.createWritable();
+      await writable.write(new Uint8Array(contents));
+      await writable.close();
+    } catch (error) {
+      console.log('Create file failed ---- ', error);
+      if (error.name === 'QuotaExceededError') {
+        throw new Error('QuotaExceededError', {
+          cause: 'The user has reached their storage quota',
+        });
+      }
+    }
   }
 
   async readFile(fileName) {
@@ -54,6 +66,7 @@ export default class FileSystemStorage {
 
   async deleteFile(fileName) {
     try {
+      console.log('deleteFile', fileName);
       await this.#rootDir.removeEntry(fileName);
     } catch (error) {
       console.log('Delete failed', error);

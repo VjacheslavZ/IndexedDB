@@ -1,26 +1,26 @@
 import { FC } from 'react';
 import { Button, ButtonGroup, Grid } from '@mui/material';
 
-import { FileSystemWeb } from '../../lib/file_system_web';
+import FileSystemManager from '../../lib/FileSystemManager';
 import FileSystemStorage from '../../lib/file_system_storage';
 
-const fsWeb = new FileSystemWeb();
+const fsManager = new FileSystemManager();
 const fs = new FileSystemStorage();
 
 const FileSystemAPIUsage: FC = () => {
   const uploadFile = async () => {
     try {
-      const file = await fsWeb.openFilePicker();
+      const file = await fsManager.openFilePicker();
       await fs.createFile(file);
       console.log('Uploaded');
     } catch (error) {
-      console.log('Upload failed', error);
+      console.log('uploadFile handle error', error);
     }
   };
 
   const saveFile = async () => {
     try {
-      const result = await fsWeb.saveFilePicker();
+      const result = await fsManager.saveFilePicker();
       console.log(result);
       console.log('Saved');
     } catch (error) {
@@ -41,6 +41,14 @@ const FileSystemAPIUsage: FC = () => {
     console.log('content', content);
   };
 
+  const observeFile = async () => {
+    try {
+      await fsManager.observeFile();
+    } catch (error) {
+      console.log('Observe file failed ---- ', error);
+    }
+  };
+
   return (
     <div>
       <Grid container>
@@ -56,6 +64,9 @@ const FileSystemAPIUsage: FC = () => {
           </Button>
           <Button variant='contained' color='secondary' onClick={deleteFile}>
             Delete File
+          </Button>
+          <Button variant='contained' color='primary' onClick={observeFile}>
+            Observe File
           </Button>
         </ButtonGroup>
       </Grid>
