@@ -4,6 +4,9 @@ import FolderIcon from '@mui/icons-material/Folder';
 import FileIcon from '@mui/icons-material/InsertDriveFile';
 
 import FileSystemStorage from '../../lib/file_system_storage';
+import FileSystemManager from '../../lib/FileSystemManager';
+
+const fsManager = new FileSystemManager();
 
 const fs = new FileSystemStorage();
 const OriginPrivateFileSystemUsage: FC = () => {
@@ -13,8 +16,8 @@ const OriginPrivateFileSystemUsage: FC = () => {
     const init = async () => {
       try {
         await fs.init();
-        const files = await fs.getListFiles();
-        setFiles(files);
+        const files = await fsManager.getListFiles('opfs');
+        setFiles(files as []);
       } catch (error) {
         console.log('Init failed', error);
       }

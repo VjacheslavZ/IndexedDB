@@ -1,21 +1,57 @@
-// TODO select file and upload to storage or to server
+import FileSystemStorage from './file_system_storage';
+
 class FileSystemManager {
-  async saveFilePicker(options = {}) {
+  #opfs;
+  #nativeRoot;
+
+  constructor() {
+    this.#opfs = new FileSystemStorage();
+  }
+
+  async writeFile(source, path, data, options) {
     try {
-      const fileHandle = await window.showSaveFilePicker(options);
-      return fileHandle;
+      if (source === 'opfs') {
+        return this.#opfs.writeFile(path, data, options);
+      }
+      if (source === 'native') {
+        if (!this.#nativeRoot) {
+          throw new Error('Native root not found', {
+            cause: 'Native root not found',
+          });
+        }
+        const handle = await this.#nativeRoot.getFileHandle(path, {
+          create: true,
+        });
+        const writable = await handle.createWritable();
+        await writable.write(data);
+        await writable.close();
+        return;
+      }
+
+      throw new Error('SourceTarget', {
+        cause: 'Source target not provided',
+      });
     } catch (error) {
-      console.log('error', error.name);
+      console.log('writeFile error', error);
     }
   }
 
-  async openFilePicker(options = { multiple: true }) {
+  async readFile(path) {
     try {
-      const [fileHandle] = await window.showOpenFilePicker(options);
-      const file = await fileHandle.getFile();
-      return file;
+      return await this.#opfs.readFile(path);
     } catch (error) {
-      console.log('handle openFilePicker', error.name);
+      console.log('Error in error readFile', error);
+    }
+  }
+
+  async deleteFile(path) {
+    return await this.#opfs.deleteFile(path);
+  }
+
+  async selectDirectoryPicker() {
+    try {
+      this.#nativeRoot = await window.showDirectoryPicker();
+    } catch (error) {
       if (error.name === 'AbortError') {
         throw new Error('AbortError', {
           cause: 'User cancelled the operation',
@@ -24,28 +60,42 @@ class FileSystemManager {
     }
   }
 
-  async showDirectoryPicker(options = {}) {
-    const directoryHandle = await window.showDirectoryPicker(options);
-    return directoryHandle;
+  async selectFilePicker() {
+    try {
+      const [fileHandle] = await window.showOpenFilePicker();
+      const file = await fileHandle.getFile();
+      return file;
+    } catch (error) {
+      console.log('selectFilePicker error', error);
+    }
   }
 
-  async observeFile() {
-    try {
-      const callback = (records, observer) => {
-        for (const record of records) {
-          console.log('Change detected:', record);
-          const reportContent = `Change observed to ${record?.changedHandle?.kind} ${record?.changedHandle?.name}. Type: ${record?.type}.`;
-          console.log('reportContent', reportContent);
-        }
-        // observer.disconnect();
-      };
-
-      const observer = new window.FileSystemObserver(callback);
-      const fileHandle = await window.showSaveFilePicker();
-      observer.observe(fileHandle);
-    } catch (error) {
-      console.error('Error observing file:', error);
+  async getListFiles(source) {
+    if (source === 'opfs') {
+      return this.#opfs.listFiles();
     }
+    if (source === 'native') {
+      if (!this.#nativeRoot) throw new Error('Native FS not initialized');
+      const result = [];
+      for await (const [name, handle] of this.#nativeRoot.entries()) {
+        const fullPath = name;
+        if (handle.kind === 'file') {
+          result.push({
+            name: fullPath,
+            kind: 'file',
+          });
+        } else if (handle.kind === 'directory') {
+          result.push({
+            name: fullPath,
+            kind: 'directory',
+          });
+        }
+      }
+      return result;
+    }
+    throw new Error('SourceTarget', {
+      cause: 'Source target not provided',
+    });
   }
 }
 

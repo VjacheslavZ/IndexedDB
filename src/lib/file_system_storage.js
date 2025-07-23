@@ -10,7 +10,61 @@ export default class FileSystemStorage {
     this.#rootDir = await navigator.storage.getDirectory();
   }
 
-  async getListFiles(path = '') {
+  async writeFile(path, file, options = { create: false }) {
+    try {
+      const handle = await this.#rootDir.getFileHandle(path, {
+        create: options.create,
+      });
+      const writable = await handle.createWritable();
+      await writable.write(file);
+      await writable.close();
+    } catch (error) {
+      if (error.name === 'QuotaExceededError') {
+        throw new Error('QuotaExceededError', {
+          cause: 'The user has reached their storage quota',
+        });
+      }
+
+      throw new Error('Error in FileSystemStorage.writeFile', {
+        cause: error.cause,
+      });
+    }
+  }
+
+  async readFile(fileName) {
+    try {
+      const handleFile = await this.#rootDir.getFileHandle(fileName);
+      const file = await handleFile.getFile();
+      const content = await file.text();
+      return content;
+    } catch (error) {
+      if (error.name === 'NotFoundError') {
+        throw new Error('NotFoundError', {
+          cause: `File '${fileName}' not found`,
+        });
+      }
+      throw new Error('Error in FileSystemStorage.readFile', {
+        cause: error.cause,
+      });
+    }
+  }
+
+  async deleteFile(fileName) {
+    try {
+      await this.#rootDir.removeEntry(fileName);
+    } catch (error) {
+      if (error.name === 'NotFoundError') {
+        throw new Error('NotFoundError', {
+          cause: `File '${fileName}' not found`,
+        });
+      }
+      throw new Error('Error in FileSystemStorage.deleteFile', {
+        cause: error.cause,
+      });
+    }
+  }
+
+  async listFiles(path = '') {
     const files = [];
     for await (const [name, handle] of this.#rootDir.entries()) {
       const fullPath = `${path}${name}`;
@@ -24,52 +78,10 @@ export default class FileSystemStorage {
           name: fullPath,
           kind: 'directory',
         });
-        await this.getListFiles(fullPath);
+        await this.listFiles(fullPath);
       }
     }
+
     return files;
-  }
-
-  async createFile(file) {
-    try {
-      const handle = await this.#rootDir.getFileHandle(file.name, {
-        create: true,
-      });
-      const contents = await file.arrayBuffer();
-      const writable = await handle.createWritable();
-      await writable.write(new Uint8Array(contents));
-      await writable.close();
-    } catch (error) {
-      console.log('Create file failed ---- ', error);
-      if (error.name === 'QuotaExceededError') {
-        throw new Error('QuotaExceededError', {
-          cause: 'The user has reached their storage quota',
-        });
-      }
-    }
-  }
-
-  async readFile(fileName) {
-    try {
-      const handleFile = await this.#rootDir.getFileHandle(fileName);
-      const file = await handleFile.getFile();
-      const content = await file.text();
-      //   TODO add selection of handle file like .text(), .arrayBuffer(), .stream()
-      //   const buffer = await file.arrayBuffer();
-      //   const stream = file.stream();
-      //   const reader = stream.getReader();
-      return content;
-    } catch (error) {
-      console.log('Read failed', error);
-    }
-  }
-
-  async deleteFile(fileName) {
-    try {
-      console.log('deleteFile', fileName);
-      await this.#rootDir.removeEntry(fileName);
-    } catch (error) {
-      console.log('Delete failed', error);
-    }
   }
 }
