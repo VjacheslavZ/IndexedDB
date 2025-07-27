@@ -19,14 +19,61 @@ const IndexedDBUsage: FC = () => {
     if (!name) return;
     const age = parseInt(prompt('Enter age:') ?? '0', 10);
     if (!Number.isInteger(age)) return;
-    await customersIdb.add('user', { name, age });
+    // await customersIdb.add('user', { name, age });
+    await customersIdb.useTransaction(
+      ['user', 'userLogs'],
+      'readwrite',
+      async (tx, stores) => {
+        const userStore = stores['user'];
+        const userLogsStore = stores['userLogs'];
+
+        const user_id = await customersIdb.requestToPromise(
+          userStore.add({ name, age })
+        );
+        await customersIdb.requestToPromise(
+          userLogsStore.add({
+            action: 'add_user',
+            user_id,
+            timestamp: new Date().getTime(),
+          })
+        );
+      }
+    );
   };
 
   const banUser = async () => {
     const id = parseInt(prompt('Enter user id:') ?? '0', 10);
     if (!id) return;
-    const result = await customersIdb.add('baned_user', { id });
-    console.log('result', result);
+    // const result = await customersIdb.add('baned_user', { id });
+    // console.log('result', result);
+
+    await customersIdb.useTransaction(
+      ['user', 'userLogs', 'baned_user'],
+      'readwrite',
+      async (tx, stores) => {
+        const userStore = stores['user'];
+        const bannedUserStore = stores['baned_user'];
+        const userLogsStore = stores['userLogs'];
+
+        const user = await customersIdb.requestToPromise(userStore.get(id));
+
+        await customersIdb.requestToPromise(
+          userStore.put({ ...user, is_active: false })
+        );
+        await customersIdb.requestToPromise(
+          bannedUserStore.add({ user_id: user.id })
+        );
+        await customersIdb.requestToPromise(
+          userLogsStore.add({
+            action: 'ban_user',
+            user_id: user.id,
+            previous_value: null,
+            new_value: null,
+            timestamp: new Date().getTime(),
+          })
+        );
+      }
+    );
   };
 
   const getUsers = async () => {
@@ -46,8 +93,7 @@ const IndexedDBUsage: FC = () => {
     const age = parseInt(prompt('Enter age:') ?? '0', 10);
     if (!Number.isInteger(age)) return;
 
-    const result = await customersIdb.update('user', { name, age, id });
-    console.log('result', result);
+    await customersIdb.update('user', { name, age, id });
   };
 
   const deleteUser = async () => {
@@ -107,7 +153,6 @@ const IndexedDBUsage: FC = () => {
         user.age += 1;
         await customersIdb.requestToPromise(userStore.put(user));
         // tx.abort();
-        console.log('+++++=');
         tx.commit();
       }
     );
