@@ -8,9 +8,9 @@ const customersIdb = new IndexedDB({
   version: 1,
   stores: {
     user: { keyPath: 'id', autoIncrement: true },
+    userLogs: { keyPath: 'id', autoIncrement: true },
     baned_user: { keyPath: 'id', autoIncrement: true },
   },
-  isUseTransactionQueue: true,
 });
 
 const IndexedDBUsage: FC = () => {
@@ -46,7 +46,7 @@ const IndexedDBUsage: FC = () => {
     const age = parseInt(prompt('Enter age:') ?? '0', 10);
     if (!Number.isInteger(age)) return;
 
-    const result = await customersIdb.put('user', id, { name, age });
+    const result = await customersIdb.update('user', { name, age, id });
     console.log('result', result);
   };
 
@@ -70,6 +70,47 @@ const IndexedDBUsage: FC = () => {
     if (!id) return;
     const result = await customersIdb.get('user', id);
     console.log('result', result);
+  };
+
+  const incrementAge = async () => {
+    const id = parseInt(prompt('Enter user id:') ?? '0', 10);
+    if (!id) return;
+    // V.0
+    // await customersIdb.exec('user', 'readwrite', store => {
+    //   const req = store.get(id);
+    //   req.onsuccess = () => {
+    //     const user = req.result;
+    //     user.age += 1;
+    //     store.put(user);
+    //   };
+    // });
+
+    // V.1
+    await customersIdb.useTransaction(
+      ['user', 'userLogs'],
+      'readwrite',
+      async (tx, stores) => {
+        const userStore = stores['user'];
+        const userLogsStore = stores['userLogs'];
+        const user = await customersIdb.requestToPromise(userStore.get(id));
+
+        await customersIdb.requestToPromise(
+          userLogsStore.add({
+            action: 'increment_user_age',
+            user_id: id,
+            previous_value: user.age,
+            new_value: user.age + 1,
+            timestamp: new Date().getTime(),
+          })
+        );
+        // throw new Error('Some error happened');
+        user.age += 1;
+        await customersIdb.requestToPromise(userStore.put(user));
+        // tx.abort();
+        console.log('+++++=');
+        tx.commit();
+      }
+    );
   };
 
   return (
@@ -107,6 +148,14 @@ const IndexedDBUsage: FC = () => {
             onClick={updateUser}
           >
             Update User
+          </Button>
+          <Button
+            variant='contained'
+            color='primary'
+            id='update'
+            onClick={incrementAge}
+          >
+            Increment age
           </Button>
           <Button
             variant='contained'
