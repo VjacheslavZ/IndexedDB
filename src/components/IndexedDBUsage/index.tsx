@@ -27,16 +27,16 @@ const IndexedDBUsage: FC = () => {
         const userStore = stores['user'];
         const userLogsStore = stores['userLogs'];
 
-        const user_id = await customersIdb.requestToPromise(
-          userStore.add({ name, age })
-        );
-        await customersIdb.requestToPromise(
-          userLogsStore.add({
-            action: 'add_user',
-            user_id,
-            timestamp: new Date().getTime(),
-          })
-        );
+        const user_id = await userStore.add({
+          name,
+          age,
+          is_active: true,
+        });
+        await userLogsStore.add({
+          action: 'add_user',
+          user_id,
+          timestamp: new Date().getTime(),
+        });
       }
     );
   };
@@ -44,8 +44,6 @@ const IndexedDBUsage: FC = () => {
   const banUser = async () => {
     const id = parseInt(prompt('Enter user id:') ?? '0', 10);
     if (!id) return;
-    // const result = await customersIdb.add('baned_user', { id });
-    // console.log('result', result);
 
     await customersIdb.useTransaction(
       ['user', 'userLogs', 'baned_user'],
@@ -55,23 +53,22 @@ const IndexedDBUsage: FC = () => {
         const bannedUserStore = stores['baned_user'];
         const userLogsStore = stores['userLogs'];
 
-        const user = await customersIdb.requestToPromise(userStore.get(id));
+        const user = await userStore.get(id);
 
-        await customersIdb.requestToPromise(
-          userStore.put({ ...user, is_active: false })
-        );
-        await customersIdb.requestToPromise(
-          bannedUserStore.add({ user_id: user.id })
-        );
-        await customersIdb.requestToPromise(
-          userLogsStore.add({
-            action: 'ban_user',
-            user_id: user.id,
-            previous_value: null,
-            new_value: null,
-            timestamp: new Date().getTime(),
-          })
-        );
+        if (!user.is_active) {
+          return;
+        }
+
+        await userStore.put({ ...user, is_active: false });
+        await bannedUserStore.add({ user_id: user.id });
+        await userLogsStore.add({
+          action: 'ban_user',
+          user_id: user.id,
+          previous_value: null,
+          new_value: null,
+          timestamp: new Date().getTime(),
+        });
+        //tx.abort();
       }
     );
   };
@@ -121,7 +118,7 @@ const IndexedDBUsage: FC = () => {
   const incrementAge = async () => {
     const id = parseInt(prompt('Enter user id:') ?? '0', 10);
     if (!id) return;
-    // V.0
+
     // await customersIdb.exec('user', 'readwrite', store => {
     //   const req = store.get(id);
     //   req.onsuccess = () => {
@@ -138,20 +135,18 @@ const IndexedDBUsage: FC = () => {
       async (tx, stores) => {
         const userStore = stores['user'];
         const userLogsStore = stores['userLogs'];
-        const user = await customersIdb.requestToPromise(userStore.get(id));
+        const user = await userStore.get(id);
 
-        await customersIdb.requestToPromise(
-          userLogsStore.add({
-            action: 'increment_user_age',
-            user_id: id,
-            previous_value: user.age,
-            new_value: user.age + 1,
-            timestamp: new Date().getTime(),
-          })
-        );
+        await userLogsStore.add({
+          action: 'increment_user_age',
+          user_id: id,
+          previous_value: user.age,
+          new_value: user.age + 1,
+          timestamp: new Date().getTime(),
+        });
         // throw new Error('Some error happened');
         user.age += 1;
-        await customersIdb.requestToPromise(userStore.put(user));
+        await userStore.put(user);
         // tx.abort();
         tx.commit();
       }

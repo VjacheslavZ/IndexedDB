@@ -1,3 +1,5 @@
+import PromisifyTransaction from './promisifyTransaction';
+
 type TTransactionMode = 'readonly' | 'readwrite';
 type TStore = Record<string, { keyPath: string; autoIncrement: boolean }>;
 
@@ -64,27 +66,20 @@ export class IndexedDB {
     });
   }
 
-  requestToPromise<T>(request: IDBRequest<T>): Promise<T> {
-    return new Promise((resolve, reject) => {
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-  }
-
   async useTransaction<T>(
     storeNames: string[],
     mode: IDBTransactionMode,
     callback: (
       tx: IDBTransaction,
-      stores: { [name: string]: IDBObjectStore }
+      stores: { [name: string]: PromisifyTransaction }
     ) => Promise<T>
   ) {
     return new Promise<T>((resolve, reject) => {
       const tx = this.#db.transaction(storeNames, mode);
 
-      const stores: { [name: string]: IDBObjectStore } = {};
+      const stores: { [name: string]: PromisifyTransaction } = {};
       for (const storeName of storeNames) {
-        stores[storeName] = tx.objectStore(storeName);
+        stores[storeName] = new PromisifyTransaction(tx.objectStore(storeName));
       }
 
       tx.onerror = () => {
@@ -93,7 +88,6 @@ export class IndexedDB {
       };
       tx.onabort = () => {
         console.log('useTransaction tx.onabort');
-        reject(tx.error || new Error('Transaction was aborted'));
       };
 
       callback(tx, stores)
