@@ -3,8 +3,8 @@ import { Button, ButtonGroup, Grid } from '@mui/material';
 
 import { IndexedDB } from '../../lib/indexedDB';
 
-const customersIdb = new IndexedDB({
-  name: 'Customers',
+const users_db = new IndexedDB({
+  name: 'users',
   version: 1,
   stores: {
     user: { keyPath: 'id', autoIncrement: true },
@@ -19,33 +19,39 @@ const IndexedDBUsage: FC = () => {
     if (!name) return;
     const age = parseInt(prompt('Enter age:') ?? '0', 10);
     if (!Number.isInteger(age)) return;
-    // await customersIdb.add('user', { name, age });
-    await customersIdb.useTransaction(
-      ['user', 'userLogs'],
-      'readwrite',
-      async (tx, stores) => {
-        const userStore = stores['user'];
-        const userLogsStore = stores['userLogs'];
 
-        const user_id = await userStore.add({
-          name,
-          age,
-          is_active: true,
-        });
-        await userLogsStore.add({
-          action: 'add_user',
-          user_id,
-          timestamp: new Date().getTime(),
-        });
-      }
-    );
+    await users_db.add('user', {
+      name,
+      age,
+      is_active: true,
+    });
+
+    // OR
+    // await users_db.useTransaction(
+    //   ['user', 'userLogs'],
+    //   'readwrite',
+    //   async (tx, stores) => {
+    //     const userStore = stores['user'];
+    //     const userLogsStore = stores['userLogs'];
+    //     const user_id = await userStore.add({
+    //       name,
+    //       age,
+    //       is_active: true,
+    //     });
+    //     await userLogsStore.add({
+    //       action: 'add_user',
+    //       user_id,
+    //       timestamp: new Date().getTime(),
+    //     });
+    //   }
+    // );
   };
 
   const banUser = async () => {
     const id = parseInt(prompt('Enter user id:') ?? '0', 10);
     if (!id) return;
 
-    await customersIdb.useTransaction(
+    await users_db.useTransaction(
       ['user', 'userLogs', 'baned_user'],
       'readwrite',
       async (tx, stores) => {
@@ -75,7 +81,7 @@ const IndexedDBUsage: FC = () => {
 
   const getUsers = async () => {
     try {
-      const users = await customersIdb.getAll('user');
+      const users = await users_db.getAll('user');
       console.log('Users :', users);
     } catch (error) {
       console.log('Get failed', error);
@@ -90,28 +96,33 @@ const IndexedDBUsage: FC = () => {
     const age = parseInt(prompt('Enter age:') ?? '0', 10);
     if (!Number.isInteger(age)) return;
 
-    await customersIdb.update('user', { name, age, id });
+    await users_db.update('user', { name, age, id });
   };
 
   const deleteUser = async () => {
     const id = parseInt(prompt('Enter user id:') ?? '0', 10);
     if (!id) return;
 
-    const result = await customersIdb.delete('user', id);
+    const result = await users_db.delete('user', id);
     console.log('result', result);
   };
 
   const findAdults = async () => {
-    const result = await customersIdb.openCursor('user', (user: any) => {
-      if (user.age >= 18) return user;
-    });
+    const result = await users_db.openCursor(
+      'user',
+      null,
+      'next',
+      (user: any) => {
+        if (user.age >= 18) return user;
+      }
+    );
     console.log('result', result);
   };
 
   const getOneUser = async () => {
     const id = parseInt(prompt('Enter user id:') ?? '0', 10);
     if (!id) return;
-    const result = await customersIdb.get('user', id);
+    const result = await users_db.get('user', id);
     console.log('result', result);
   };
 
@@ -119,17 +130,7 @@ const IndexedDBUsage: FC = () => {
     const id = parseInt(prompt('Enter user id:') ?? '0', 10);
     if (!id) return;
 
-    // await customersIdb.exec('user', 'readwrite', store => {
-    //   const req = store.get(id);
-    //   req.onsuccess = () => {
-    //     const user = req.result;
-    //     user.age += 1;
-    //     store.put(user);
-    //   };
-    // });
-
-    // V.1
-    await customersIdb.useTransaction(
+    await users_db.useTransaction(
       ['user', 'userLogs'],
       'readwrite',
       async (tx, stores) => {
