@@ -134,7 +134,6 @@ export class IndexedDB {
     direction: IDBCursorDirection = 'next',
     callback: (value: unknown) => unknown
   ) {
-    // todo async iterator
     return this.#exec(storeName, 'readonly', store => {
       const cursorRequest = store.openCursor(query, direction);
       const results: unknown[] = [];
@@ -153,5 +152,66 @@ export class IndexedDB {
     });
   }
 
+  async openAsyncCursor(
+    storeName: string,
+    query: IDBKeyRange | null,
+    direction: IDBCursorDirection = 'next'
+  ) {
+    const tx = this.#db.transaction(storeName, 'readonly');
+    const store = tx.objectStore(storeName);
+
+    return {
+      [Symbol.asyncIterator]() {
+        let cursorRequest: IDBRequest<IDBCursorWithValue | null> | null = null;
+
+        return {
+          next(): Promise<IteratorResult<IDBCursorWithValue>> {
+            return new Promise((resolve, reject) => {
+              if (!cursorRequest) {
+                try {
+                  cursorRequest = store.openCursor(query, direction);
+                } catch (error) {
+                  reject(error);
+                }
+              } else {
+                try {
+                  (cursorRequest.result as IDBCursorWithValue)?.continue();
+                } catch (error) {
+                  reject(error);
+                }
+              }
+
+              cursorRequest!.onsuccess = () => {
+                const cursor = cursorRequest!.result;
+
+                if (cursor) {
+                  resolve({ value: cursor, done: false });
+                } else {
+                  resolve({ value: undefined, done: true });
+                }
+              };
+              cursorRequest!.onerror = () => {
+                reject(cursorRequest!.error);
+              };
+            });
+          },
+        };
+      },
+    };
+  }
+
   async updateById(storeName: string, id: number, data: unknown) {}
+}
+
+{
+  // TODO
+  const users_db = new IndexedDB({
+    name: 'users',
+    version: 1,
+    stores: {
+      user: { keyPath: 'id', autoIncrement: true },
+      userLogs: { keyPath: 'id', autoIncrement: true },
+      baned_user: { keyPath: 'id', autoIncrement: true },
+    },
+  });
 }

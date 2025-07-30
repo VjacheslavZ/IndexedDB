@@ -116,7 +116,13 @@ const IndexedDBUsage: FC = () => {
         if (user.age >= 18) return user;
       }
     );
-    console.log('result', result);
+    console.log('openCursor result', result);
+    // use async iterator
+    const asyncCursor = await users_db.openAsyncCursor('user', null, 'next');
+    for await (const user of asyncCursor) {
+      console.log('openAsyncCursor key', user.key);
+      console.log('openAsyncCursor user', user.value);
+    }
   };
 
   const getOneUser = async () => {
