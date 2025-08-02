@@ -7,7 +7,7 @@ const users_db = new IndexedDB({
   name: 'users',
   version: 1,
   stores: {
-    user: { keyPath: 'id', autoIncrement: true },
+    user: { keyPath: 'id', autoIncrement: true, index: 'age' },
     userLogs: { keyPath: 'id', autoIncrement: true },
     baned_user: { keyPath: 'id', autoIncrement: true },
   },
@@ -25,6 +25,15 @@ const IndexedDBUsage: FC = () => {
       age,
       is_active: true,
     });
+
+    // OR
+    // users_db.useTransaction('user', 'readwrite', async ({ stores }) => {
+    //   await stores.user.add({
+    //     name,
+    //     age,
+    //     is_active: true,
+    //   });
+    // });
 
     // OR
     // await users_db.useTransaction(
@@ -51,32 +60,29 @@ const IndexedDBUsage: FC = () => {
     const id = parseInt(prompt('Enter user id:') ?? '0', 10);
     if (!id) return;
 
-    await users_db.useTransaction(
+    const result = await users_db.useTransaction(
       ['user', 'userLogs', 'baned_user'],
       'readwrite',
-      async (tx, stores) => {
-        const userStore = stores['user'];
-        const bannedUserStore = stores['baned_user'];
-        const userLogsStore = stores['userLogs'];
-
-        const user = await userStore.get(id);
+      async ({ tx, stores }) => {
+        const user = await stores.user.get(id);
 
         if (!user.is_active) {
           return;
         }
 
-        await userStore.put({ ...user, is_active: false });
-        await bannedUserStore.add({ user_id: user.id });
-        await userLogsStore.add({
+        await stores.user.put({ ...user, is_active: false });
+        await stores.baned_user.add({ user_id: user.id });
+        await stores.userLogs.add({
           action: 'ban_user',
           user_id: user.id,
           previous_value: null,
           new_value: null,
           timestamp: new Date().getTime(),
         });
-        //tx.abort();
+        // tx.abort();
       }
     );
+    console.log('banUser result', result);
   };
 
   const getUsers = async () => {
@@ -108,17 +114,40 @@ const IndexedDBUsage: FC = () => {
   };
 
   const findAdults = async () => {
-    const result = await users_db.openCursor(
-      'user',
-      null,
-      'next',
-      (user: any) => {
-        if (user.age >= 18) return user;
-      }
-    );
+    const query = IDBKeyRange.lowerBound(18);
+    // use regular cursor
+    const result = await users_db.openCursor('user', query, 'next', 'age');
     console.log('openCursor result', result);
+
+    {
+      // use next()
+      const asyncCursor = await users_db.openAsyncCursor(
+        'user',
+        query,
+        'prev',
+        'age'
+      );
+      const iterator = asyncCursor[Symbol.asyncIterator]();
+
+      const firstResult = await iterator.next();
+      console.log('firstResult', firstResult.value);
+      const secondResult = await iterator.next();
+      console.log('secondResult', secondResult.value);
+      const thirdResult = await iterator.next();
+      console.log('thirdResult', thirdResult);
+      const fourthResult = await iterator.next();
+      console.log('fourthResult', fourthResult);
+      const fifthResult = await iterator.next();
+      console.log('fifthResult', fifthResult);
+    }
+
     // use async iterator
-    const asyncCursor = await users_db.openAsyncCursor('user', null, 'next');
+    const asyncCursor = await users_db.openAsyncCursor(
+      'user',
+      query,
+      'prev',
+      'age'
+    );
     for await (const user of asyncCursor) {
       console.log('openAsyncCursor key', user.key);
       console.log('openAsyncCursor user', user.value);
@@ -139,12 +168,10 @@ const IndexedDBUsage: FC = () => {
     await users_db.useTransaction(
       ['user', 'userLogs'],
       'readwrite',
-      async (tx, stores) => {
-        const userStore = stores['user'];
-        const userLogsStore = stores['userLogs'];
-        const user = await userStore.get(id);
+      async ({ tx, stores }) => {
+        const user = await stores.user.get(id);
 
-        await userLogsStore.add({
+        await stores.userLogs.add({
           action: 'increment_user_age',
           user_id: id,
           previous_value: user.age,
@@ -153,9 +180,23 @@ const IndexedDBUsage: FC = () => {
         });
         // throw new Error('Some error happened');
         user.age += 1;
-        await userStore.put(user);
+        await stores.user.put(user);
         // tx.abort();
         tx.commit();
+      }
+    );
+  };
+
+  const incrementAgeForAllUsers = async () => {
+    await users_db.useTransaction(
+      'user',
+      'readwrite',
+      async ({ tx, stores }) => {
+        const users = await stores.user.getAll();
+        for (const user of users) {
+          user.age += 1;
+          await stores.user.put(user);
+        }
       }
     );
   };
@@ -187,6 +228,14 @@ const IndexedDBUsage: FC = () => {
             onClick={getUsers}
           >
             Get All Users
+          </Button>
+          <Button
+            variant='contained'
+            color='primary'
+            id='increment'
+            onClick={incrementAgeForAllUsers}
+          >
+            Increment age for all users
           </Button>
           <Button
             variant='contained'

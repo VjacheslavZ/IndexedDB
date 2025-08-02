@@ -16,6 +16,10 @@ class PromisifyTransaction {
     return this.promisifyRequest(this.#store.get(key));
   }
 
+  getAll<T = any>(query?: IDBKeyRange | null): Promise<T[]> {
+    return this.promisifyRequest(this.#store.getAll(query));
+  }
+
   put<T = any>(value: T, key?: IDBValidKey): Promise<IDBValidKey | undefined> {
     return this.promisifyRequest(this.#store.put(value, key));
   }

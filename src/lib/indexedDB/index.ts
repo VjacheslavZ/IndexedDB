@@ -1,7 +1,10 @@
 import PromisifyTransaction from './promisifyTransaction';
 
 type TTransactionMode = 'readonly' | 'readwrite';
-type TStore = Record<string, { keyPath: string; autoIncrement: boolean }>;
+type TStore = Record<
+  string,
+  { keyPath: string; autoIncrement: boolean; index?: string }
+>;
 
 export class IndexedDB {
   #db!: IDBDatabase;
@@ -23,9 +26,16 @@ export class IndexedDB {
       request.onupgradeneeded = () => {
         const db = request.result;
         const stores = Object.entries(this.#stores);
-        for (const [storeName, { keyPath, autoIncrement }] of stores) {
+        for (const [storeName, { keyPath, autoIncrement, index }] of stores) {
           if (!db.objectStoreNames.contains(storeName)) {
-            db.createObjectStore(storeName, { keyPath, autoIncrement });
+            const result = db.createObjectStore(storeName, {
+              keyPath,
+              autoIncrement,
+            });
+            console.log('index', index);
+            if (index) {
+              result.createIndex(index, index, { unique: false });
+            }
           }
         }
       };
@@ -54,42 +64,39 @@ export class IndexedDB {
   }
 
   async useTransaction<T>(
-    storeNames: string[],
+    storeNames: string[] | string,
     mode: IDBTransactionMode,
-    callback: (
-      tx: IDBTransaction,
-      stores: { [name: string]: PromisifyTransaction }
-    ) => Promise<T>
+    callback: ({
+      tx,
+      stores,
+    }: {
+      tx: IDBTransaction;
+      stores: { [name: string]: PromisifyTransaction };
+    }) => Promise<T>
   ) {
-    return new Promise<T>((resolve, reject) => {
-      const tx = this.#db.transaction(storeNames, mode);
+    const isArrayStores = Array.isArray(storeNames);
+    const storeNamesArray = isArrayStores ? storeNames : [storeNames];
+    // @ts-ignore
+    const { promise, resolve, reject } = Promise.withResolvers<T>();
+    const tx = this.#db.transaction(storeNames, mode);
 
-      const stores: { [name: string]: PromisifyTransaction } = {};
-      for (const storeName of storeNames) {
-        stores[storeName] = new PromisifyTransaction(tx.objectStore(storeName));
-      }
+    const stores: { [name: string]: PromisifyTransaction } = {};
+    for (const storeName of storeNamesArray) {
+      stores[storeName] = new PromisifyTransaction(tx.objectStore(storeName));
+    }
 
-      tx.onerror = () => {
-        console.log('useTransaction tx.onerror');
-        reject(tx.error);
-      };
-      tx.onabort = () => {
-        console.log('useTransaction tx.onabort');
-      };
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => console.log('useTransaction tx.onabort');
 
-      callback(tx, stores)
-        .then(result => {
-          tx.oncomplete = () => {
-            console.log('useTransaction then tx.oncomplete');
-            resolve(result);
-          };
-        })
-        .catch(error => {
-          console.log('useTransaction catch');
-          tx.abort();
-          reject(error);
-        });
-    });
+    try {
+      const result = await callback({ tx, stores });
+      tx.oncomplete = () => resolve(result);
+    } catch (error) {
+      tx.abort();
+      reject(error);
+    }
+
+    return promise;
   }
 
   async add(storeName: string, data: unknown) {
@@ -130,21 +137,20 @@ export class IndexedDB {
 
   async openCursor(
     storeName: string,
-    query: IDBKeyRange | null,
+    query: IDBKeyRange | null = null,
     direction: IDBCursorDirection = 'next',
-    callback: (value: unknown) => unknown
+    indexName?: string
   ) {
     return this.#exec(storeName, 'readonly', store => {
-      const cursorRequest = store.openCursor(query, direction);
+      const source = indexName ? store.index(indexName) : store;
+      const cursorRequest = source.openCursor(query, direction);
       const results: unknown[] = [];
 
       return new Promise((resolve, reject) => {
-        cursorRequest.onsuccess = (event: Event) => {
-          const cursor = (event.target as IDBRequest<IDBCursorWithValue>)
-            .result;
+        cursorRequest.onsuccess = (e: Event) => {
+          const cursor = (e.target as IDBRequest<IDBCursorWithValue>).result;
           if (!cursor) return resolve(results);
-          const result = callback(cursor.value);
-          if (result) results.push(result);
+          results.push(cursor.value);
           cursor.continue();
         };
         cursorRequest.onerror = () => reject(cursorRequest.error);
@@ -155,44 +161,42 @@ export class IndexedDB {
   async openAsyncCursor(
     storeName: string,
     query: IDBKeyRange | null,
-    direction: IDBCursorDirection = 'next'
+    direction: IDBCursorDirection = 'next',
+    indexName?: string
   ) {
     const tx = this.#db.transaction(storeName, 'readonly');
-    const store = tx.objectStore(storeName);
+    const source = indexName
+      ? tx.objectStore(storeName).index(indexName)
+      : tx.objectStore(storeName);
 
     return {
       [Symbol.asyncIterator]() {
-        let cursorRequest: IDBRequest<IDBCursorWithValue | null> | null = null;
+        let cursorRequest: IDBRequest<IDBCursorWithValue | null>;
 
         return {
           next(): Promise<IteratorResult<IDBCursorWithValue>> {
             return new Promise((resolve, reject) => {
               if (!cursorRequest) {
                 try {
-                  cursorRequest = store.openCursor(query, direction);
+                  cursorRequest = source.openCursor(query, direction);
                 } catch (error) {
                   return reject(error);
                 }
               } else {
                 try {
-                  (cursorRequest.result as IDBCursorWithValue).continue();
+                  if (cursorRequest.result) cursorRequest.result.continue();
+                  else return resolve({ value: undefined, done: true });
                 } catch (error) {
-                  reject(error);
+                  return reject(error);
                 }
               }
 
               cursorRequest.onsuccess = () => {
                 const cursor = cursorRequest.result;
-
-                if (cursor) {
-                  resolve({ value: cursor, done: false });
-                } else {
-                  resolve({ value: undefined, done: true });
-                }
+                if (cursor) resolve({ value: cursor, done: false });
+                else resolve({ value: undefined, done: true });
               };
-              cursorRequest!.onerror = () => {
-                reject(cursorRequest!.error);
-              };
+              cursorRequest.onerror = () => reject(cursorRequest.error);
             });
           },
         };
@@ -203,15 +207,15 @@ export class IndexedDB {
   async updateById(storeName: string, id: number, data: unknown) {}
 }
 
-{
-  // TODO
-  const users_db = new IndexedDB({
-    name: 'users',
-    version: 1,
-    stores: {
-      user: { keyPath: 'id', autoIncrement: true },
-      userLogs: { keyPath: 'id', autoIncrement: true },
-      baned_user: { keyPath: 'id', autoIncrement: true },
-    },
-  });
-}
+// {
+//   // TODO
+//   const users_db = new IndexedDB({
+//     name: 'users',
+//     version: 1,
+//     stores: {
+//       user: { keyPath: 'id', autoIncrement: true },
+//       userLogs: { keyPath: 'id', autoIncrement: true },
+//       baned_user: { keyPath: 'id', autoIncrement: true },
+//     },
+//   });
+// }
