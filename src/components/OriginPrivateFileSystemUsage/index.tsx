@@ -4,7 +4,7 @@ import FolderIcon from '@mui/icons-material/Folder';
 import FileIcon from '@mui/icons-material/InsertDriveFile';
 
 import FileSystemStorage from '../../lib/file_system_storage';
-import FileSystemManager from '../../lib/FileSystemManager';
+import FileSystemManager from '../../lib/file_system_manager';
 
 const fsManager = new FileSystemManager();
 

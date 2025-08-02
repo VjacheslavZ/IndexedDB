@@ -1,7 +1,7 @@
 import { FC } from 'react';
 import { Button, Grid } from '@mui/material';
 
-import FileSystemManager from '../../lib/FileSystemManager';
+import FileSystemManager from '../../lib/file_system_manager';
 
 const fsManager = new FileSystemManager();
 

@@ -171,18 +171,18 @@ export class IndexedDB {
                 try {
                   cursorRequest = store.openCursor(query, direction);
                 } catch (error) {
-                  reject(error);
+                  return reject(error);
                 }
               } else {
                 try {
-                  (cursorRequest.result as IDBCursorWithValue)?.continue();
+                  (cursorRequest.result as IDBCursorWithValue).continue();
                 } catch (error) {
                   reject(error);
                 }
               }
 
-              cursorRequest!.onsuccess = () => {
-                const cursor = cursorRequest!.result;
+              cursorRequest.onsuccess = () => {
+                const cursor = cursorRequest.result;
 
                 if (cursor) {
                   resolve({ value: cursor, done: false });
