@@ -141,6 +141,7 @@ export class IndexedDB {
     direction: IDBCursorDirection = 'next',
     indexName?: string
   ) {
+    // TODO use with resolvers
     return this.#exec(storeName, 'readonly', store => {
       const source = indexName ? store.index(indexName) : store;
       const cursorRequest = source.openCursor(query, direction);
@@ -206,16 +207,3 @@ export class IndexedDB {
 
   async updateById(storeName: string, id: number, data: unknown) {}
 }
-
-// {
-//   // TODO
-//   const users_db = new IndexedDB({
-//     name: 'users',
-//     version: 1,
-//     stores: {
-//       user: { keyPath: 'id', autoIncrement: true },
-//       userLogs: { keyPath: 'id', autoIncrement: true },
-//       baned_user: { keyPath: 'id', autoIncrement: true },
-//     },
-//   });
-// }

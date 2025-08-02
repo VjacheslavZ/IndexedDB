@@ -14,6 +14,32 @@ const users_db = new IndexedDB({
 });
 
 const IndexedDBUsage: FC = () => {
+  // Bulk update ban underage use cursor
+  const banUnderage = async () => {
+    users_db.useTransaction(
+      ['user', 'userLogs'],
+      'readwrite',
+      async ({ tx, stores }) => {
+        const query = IDBKeyRange.upperBound(18, true);
+        let records = await stores.user.openCursor(query, 'prev', 'age');
+
+        for (const record of records) {
+          if (record.is_active) {
+            await stores.user.put({ ...record, is_active: false });
+            await stores.userLogs.add({
+              action: 'ban_user',
+              user_id: record.id,
+              previous_value: null,
+              new_value: null,
+              timestamp: new Date().getTime(),
+            });
+          }
+        }
+        // tx.abort();
+      }
+    );
+  };
+
   const addUser = async () => {
     const name = prompt('Enter user name:');
     if (!name) return;
@@ -271,6 +297,9 @@ const IndexedDBUsage: FC = () => {
           </Button>
           <Button variant='contained' color='secondary' onClick={banUser}>
             Ban User
+          </Button>
+          <Button variant='contained' color='secondary' onClick={banUnderage}>
+            Ban minors
           </Button>
         </ButtonGroup>
       </Grid>

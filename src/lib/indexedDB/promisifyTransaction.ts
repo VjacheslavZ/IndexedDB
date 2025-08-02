@@ -31,6 +31,26 @@ class PromisifyTransaction {
   delete(key: IDBValidKey): Promise<void> {
     return this.promisifyRequest(this.#store.delete(key));
   }
+
+  openCursor<T = any>(
+    query: IDBKeyRange | null = null,
+    direction: IDBCursorDirection = 'next',
+    indexName?: string
+  ): Promise<T[]> {
+    const source = indexName ? this.#store.index(indexName) : this.#store;
+    const cursorRequest = source.openCursor(query, direction);
+    const results: T[] = [];
+    return new Promise((resolve, reject) => {
+      cursorRequest.onsuccess = (e: Event) => {
+        const cursor = (e.target as IDBRequest<IDBCursorWithValue>).result;
+
+        if (!cursor) return resolve(results);
+        results.push(cursor.value);
+        cursor.continue();
+      };
+      cursorRequest.onerror = () => reject(cursorRequest.error);
+    });
+  }
 }
 
 export default PromisifyTransaction;
