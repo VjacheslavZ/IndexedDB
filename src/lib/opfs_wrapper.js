@@ -44,6 +44,7 @@ export default class FileSystemStorage {
         const content = await file.text();
         return content;
       }
+
       const handleFile = await this.#rootDir.getFileHandle(fileName);
       const file = await handleFile.getFile();
       const content = await file.text();

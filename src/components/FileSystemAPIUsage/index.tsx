@@ -42,7 +42,12 @@ const FileSystemAPIUsage: FC = () => {
   const readFile = async () => {
     const fileName = prompt('Enter file name:');
     if (!fileName) return;
-    const content = await opfsManager.readFile(fileName);
+    const content = await opfsManager.readFile('opfs', fileName);
+    console.log('content', content);
+  };
+
+  const readFileFromNative = async () => {
+    const content = await opfsManager.readFile('native');
     console.log('content', content);
   };
 
@@ -74,7 +79,14 @@ const FileSystemAPIUsage: FC = () => {
           Create and download from OPFS
         </Button>
         <Button variant='contained' color='primary' onClick={readFile}>
-          Read file
+          Read file from OPFS
+        </Button>
+        <Button
+          variant='contained'
+          color='primary'
+          onClick={readFileFromNative}
+        >
+          Read file from Native
         </Button>
         <Button variant='contained' color='secondary' onClick={deleteFile}>
           Delete File

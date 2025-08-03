@@ -40,9 +40,16 @@ class FileSystemManager {
     sourceNotProvidedError();
   }
 
-  async readFile(path) {
+  async readFile(source, path) {
     try {
-      return await this.#opfs.readFile(path);
+      if (source === 'opfs') {
+        return await this.#opfs.readFile(path);
+      }
+      if (source === 'native') {
+        return await this.#nativeRoot.readFile(path);
+      }
+
+      sourceNotProvidedError();
     } catch (error) {
       console.log('Error in error readFile', error);
     }
