@@ -3,18 +3,19 @@ import { List, ListItem, ListItemIcon, ListItemText } from '@mui/material';
 import FolderIcon from '@mui/icons-material/Folder';
 import FileIcon from '@mui/icons-material/InsertDriveFile';
 
-import FileSystemStorage from '../../lib/file_system_storage';
+import FileSystemStorage from '../../lib/opfs_wrapper';
 import FileSystemManager from '../../lib/file_system_manager';
 
 const fsManager = new FileSystemManager();
-
 const fs = new FileSystemStorage();
+
 const OriginPrivateFileSystemUsage: FC = () => {
   const [files, setFiles] = useState<{ name: string; kind: string }[]>([]);
 
   useEffect(() => {
     const init = async () => {
       try {
+        // TODO investigate
         await fs.init();
         const files = await fsManager.getListFiles('opfs');
         setFiles(files as []);

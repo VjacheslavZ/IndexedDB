@@ -1,4 +1,4 @@
-import FileSystemStorage from './file_system_storage';
+import FileSystemStorage from './opfs_wrapper';
 
 const notFoundNativeRootError = () => {
   throw new Error('Native root not found', {

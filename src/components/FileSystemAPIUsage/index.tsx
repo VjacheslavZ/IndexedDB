@@ -3,13 +3,13 @@ import { Button, Grid } from '@mui/material';
 
 import FileSystemManager from '../../lib/file_system_manager';
 
-const fsManager = new FileSystemManager();
+const opfsManager = new FileSystemManager();
 
 const FileSystemAPIUsage: FC = () => {
   const createAndDownloadFromOPFS = async () => {
     try {
-      await fsManager.selectDirectoryPicker();
-      await fsManager.writeFile('native', 'new_note.txt', 'file content');
+      await opfsManager.selectDirectoryPicker();
+      await opfsManager.writeFile('native', 'new_note.txt', 'file content');
     } catch (error) {
       console.log('downloadFileFromOPFS error', error);
     }
@@ -18,7 +18,7 @@ const FileSystemAPIUsage: FC = () => {
   const createFileInOPFS = async () => {
     try {
       const now = new Date().toISOString();
-      await fsManager.writeFile('opfs', `${now}.txt`, 'document content', {
+      await opfsManager.writeFile('opfs', `${now}.txt`, 'document content', {
         create: true,
       });
     } catch (error) {
@@ -28,8 +28,8 @@ const FileSystemAPIUsage: FC = () => {
 
   const uploadFileToOPFS = async () => {
     try {
-      const file = await fsManager.selectFilePicker();
-      await fsManager.writeFile('opfs', file.name, file, { create: true });
+      const file = await opfsManager.selectFilePicker();
+      await opfsManager.writeFile('opfs', file.name, file, { create: true });
     } catch (error) {
       console.log('uploadFile handle error', error);
     }
@@ -38,20 +38,20 @@ const FileSystemAPIUsage: FC = () => {
   const deleteFile = async () => {
     const fileName = prompt('Enter file name:');
     if (!fileName) return;
-    await fsManager.deleteFile(fileName);
+    await opfsManager.deleteFile(fileName);
   };
 
   const readFile = async () => {
     const fileName = prompt('Enter file name:');
     if (!fileName) return;
-    const content = await fsManager.readFile(fileName);
+    const content = await opfsManager.readFile(fileName);
     console.log('content', content);
   };
 
   const getListFiles = async () => {
     try {
-      await fsManager.selectDirectoryPicker();
-      const files = await fsManager.getListFiles('native');
+      await opfsManager.selectDirectoryPicker();
+      const files = await opfsManager.getListFiles('native');
       console.log('files', files);
     } catch (error) {
       console.log('getListFiles error', error);
