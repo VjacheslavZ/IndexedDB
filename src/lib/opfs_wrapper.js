@@ -2,17 +2,29 @@ import opfsErrorsHandler from './opfs_errors_handler';
 
 export default class FileSystemStorage {
   #rootDir = null;
+  #isUseNativeDir = null;
 
-  constructor() {
-    this.init();
+  constructor(isUseNativeDir = false) {
+    this.#isUseNativeDir = isUseNativeDir;
+    this.init(isUseNativeDir);
   }
 
-  async init() {
-    this.#rootDir = await navigator.storage.getDirectory();
+  async init(isUseNativeDir) {
+    this.#rootDir = isUseNativeDir
+      ? null
+      : await navigator.storage.getDirectory();
+  }
+
+  async initNativeRoot() {
+    if (this.#isUseNativeDir) {
+      this.#rootDir = await window.showDirectoryPicker();
+    }
   }
 
   async writeFile(path, file, options = { create: false }) {
     try {
+      await this.initNativeRoot();
+
       const handle = await this.#rootDir.getFileHandle(path, {
         create: options.create,
       });
@@ -26,6 +38,12 @@ export default class FileSystemStorage {
 
   async readFile(fileName) {
     try {
+      if (this.#isUseNativeDir) {
+        const [fileHandle] = await window.showOpenFilePicker();
+        const file = await fileHandle.getFile();
+        const content = await file.text();
+        return content;
+      }
       const handleFile = await this.#rootDir.getFileHandle(fileName);
       const file = await handleFile.getFile();
       const content = await file.text();
@@ -51,11 +69,14 @@ export default class FileSystemStorage {
     }
   }
 
-  async listFiles(path = '') {
+  async listFiles() {
     try {
+      await this.initNativeRoot();
+
       const files = [];
       for await (const [name, handle] of this.#rootDir.entries()) {
-        const fullPath = `${path}${name}`;
+        const fullPath = `${name}`;
+
         if (handle.kind === 'file') {
           files.push({
             name: fullPath,
@@ -66,13 +87,12 @@ export default class FileSystemStorage {
             name: fullPath,
             kind: 'directory',
           });
-          await this.listFiles(fullPath);
         }
       }
 
       return files;
     } catch (error) {
-      opfsErrorsHandler(error, 'read', path);
+      opfsErrorsHandler(error, 'read');
     }
   }
 }

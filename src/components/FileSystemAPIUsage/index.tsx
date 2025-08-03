@@ -7,22 +7,20 @@ const opfsManager = new FileSystemManager();
 
 const FileSystemAPIUsage: FC = () => {
   const createAndDownloadFromOPFS = async () => {
-    try {
-      await opfsManager.selectDirectoryPicker();
-      await opfsManager.writeFile('native', 'new_note.txt', 'file content');
-    } catch (error) {
-      console.log('downloadFileFromOPFS error', error);
-    }
+    opfsManager.writeFile('native', 'new_note.txt', 'file content', {
+      create: true,
+    });
   };
 
   const createFileInOPFS = async () => {
     try {
       const now = new Date().toISOString();
-      await opfsManager.writeFile('opfs', `${now}.txt`, 'document content', {
+      const fileName = `${now}.txt`;
+      await opfsManager.writeFile('opfs', fileName, 'document content', {
         create: true,
       });
     } catch (error) {
-      console.log('createFile error', error);
+      console.log('createFileInOPFS', error);
     }
   };
 
@@ -50,7 +48,7 @@ const FileSystemAPIUsage: FC = () => {
 
   const getListFiles = async () => {
     try {
-      await opfsManager.selectDirectoryPicker();
+      // await opfsManager.selectDirectoryPicker();
       const files = await opfsManager.getListFiles('native');
       console.log('files', files);
     } catch (error) {

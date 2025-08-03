@@ -1,9 +1,12 @@
 import FileSystemStorage from './opfs_wrapper';
 
-const notFoundNativeRootError = () => {
-  throw new Error('Native root not found', {
-    cause: 'Native root not found',
-  });
+const sourceNotProvidedError = () => {
+  throw new Error(
+    'Argument "source"  is not provided pass "opfs" or "native" as a first argument',
+    {
+      cause: 'Source target not provided',
+    }
+  );
 };
 
 class FileSystemManager {
@@ -12,31 +15,29 @@ class FileSystemManager {
 
   constructor() {
     this.#opfs = new FileSystemStorage();
+    this.#nativeRoot = new FileSystemStorage(true);
   }
 
   async writeFile(source, path, data, options) {
-    try {
-      if (source === 'opfs') {
-        return this.#opfs.writeFile(path, data, options);
-      }
-      if (source === 'native') {
-        if (!this.#nativeRoot) notFoundNativeRootError();
-
-        const handle = await this.#nativeRoot.getFileHandle(path, {
-          create: true,
-        });
-        const writable = await handle.createWritable();
-        await writable.write(data);
-        await writable.close();
-        return;
-      }
-
-      throw new Error('SourceTarget', {
-        cause: 'Source target not provided',
-      });
-    } catch (error) {
-      console.log('writeFile error', error);
+    if (source === 'opfs') {
+      return this.#opfs.writeFile(path, data, options);
     }
+    if (source === 'native') {
+      return this.#nativeRoot.writeFile(path, data, options);
+    }
+
+    sourceNotProvidedError();
+  }
+
+  async getListFiles(source) {
+    if (source === 'opfs') {
+      return this.#opfs.listFiles();
+    }
+    if (source === 'native') {
+      return this.#nativeRoot.listFiles();
+    }
+
+    sourceNotProvidedError();
   }
 
   async readFile(path) {
@@ -69,35 +70,6 @@ class FileSystemManager {
     } catch (error) {
       console.log('selectFilePicker error', error);
     }
-  }
-
-  async getListFiles(source) {
-    if (source === 'opfs') {
-      return this.#opfs.listFiles();
-    }
-    if (source === 'native') {
-      if (!this.#nativeRoot) notFoundNativeRootError();
-      const result = [];
-      for await (const [name, handle] of this.#nativeRoot.entries()) {
-        const fullPath = name;
-        if (handle.kind === 'file') {
-          result.push({
-            name: fullPath,
-            kind: 'file',
-          });
-        } else if (handle.kind === 'directory') {
-          result.push({
-            name: fullPath,
-            kind: 'directory',
-          });
-        }
-      }
-      return result;
-    }
-
-    throw new Error('SourceTarget', {
-      cause: 'Source target not provided',
-    });
   }
 }
 

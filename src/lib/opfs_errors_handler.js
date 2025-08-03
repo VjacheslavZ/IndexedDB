@@ -5,8 +5,7 @@ const opfsErrorsHandler = (error, mode = 'read', fileName = '') => {
     NotFoundError: `Current entry: '${fileName}' is not found.`,
     NoModificationAllowedError:
       'The browser is not able to acquire a lock on the file associated with the file handle.',
-    AbortError:
-      'Implementation of defined malware scans and safe-browsing checks fails.',
+    AbortError: 'The user aborted a request.',
     TypeError: `The name: '${fileName}' is not a valid or contains characters not allowed on the file system.`,
     InvalidModificationError:
       'Recursive is set to false and the entry to be removed has children.',
