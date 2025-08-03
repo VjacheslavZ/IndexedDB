@@ -1,5 +1,11 @@
 import FileSystemStorage from './file_system_storage';
 
+const notFoundNativeRootError = () => {
+  throw new Error('Native root not found', {
+    cause: 'Native root not found',
+  });
+};
+
 class FileSystemManager {
   #opfs;
   #nativeRoot;
@@ -14,11 +20,8 @@ class FileSystemManager {
         return this.#opfs.writeFile(path, data, options);
       }
       if (source === 'native') {
-        if (!this.#nativeRoot) {
-          throw new Error('Native root not found', {
-            cause: 'Native root not found',
-          });
-        }
+        if (!this.#nativeRoot) notFoundNativeRootError();
+
         const handle = await this.#nativeRoot.getFileHandle(path, {
           create: true,
         });
@@ -53,9 +56,7 @@ class FileSystemManager {
       this.#nativeRoot = await window.showDirectoryPicker();
     } catch (error) {
       if (error.name === 'AbortError') {
-        throw new Error('AbortError', {
-          cause: 'User cancelled the operation',
-        });
+        throw new Error('User cancelled the operation', { cause: error });
       }
     }
   }
@@ -75,7 +76,7 @@ class FileSystemManager {
       return this.#opfs.listFiles();
     }
     if (source === 'native') {
-      if (!this.#nativeRoot) throw new Error('Native FS not initialized');
+      if (!this.#nativeRoot) notFoundNativeRootError();
       const result = [];
       for await (const [name, handle] of this.#nativeRoot.entries()) {
         const fullPath = name;
@@ -93,6 +94,7 @@ class FileSystemManager {
       }
       return result;
     }
+
     throw new Error('SourceTarget', {
       cause: 'Source target not provided',
     });

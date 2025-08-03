@@ -85,8 +85,6 @@ const FileSystemAPIUsage: FC = () => {
         <Button variant='contained' color='primary' onClick={getListFiles}>
           getListFiles
         </Button>
-
-        {/* </ButtonGroup> */}
       </Grid>
     </div>
   );
