@@ -53,7 +53,6 @@ const FileSystemAPIUsage: FC = () => {
 
   const getListFiles = async () => {
     try {
-      // await opfsManager.selectDirectoryPicker();
       const files = await opfsManager.getListFiles('native');
       console.log('files', files);
     } catch (error) {

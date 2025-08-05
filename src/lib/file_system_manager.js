@@ -18,6 +18,16 @@ class FileSystemManager {
     this.#nativeRoot = new FileSystemStorage(true);
   }
 
+  async selectFilePicker() {
+    try {
+      const [fileHandle] = await window.showOpenFilePicker();
+      const file = await fileHandle.getFile();
+      return file;
+    } catch (error) {
+      console.log('selectFilePicker error', error);
+    }
+  }
+
   async writeFile(source, path, data, options) {
     if (source === 'opfs') {
       return this.#opfs.writeFile(path, data, options);
@@ -57,26 +67,6 @@ class FileSystemManager {
 
   async deleteFile(path) {
     return await this.#opfs.deleteFile(path);
-  }
-
-  async selectDirectoryPicker() {
-    try {
-      this.#nativeRoot = await window.showDirectoryPicker();
-    } catch (error) {
-      if (error.name === 'AbortError') {
-        throw new Error('User cancelled the operation', { cause: error });
-      }
-    }
-  }
-
-  async selectFilePicker() {
-    try {
-      const [fileHandle] = await window.showOpenFilePicker();
-      const file = await fileHandle.getFile();
-      return file;
-    } catch (error) {
-      console.log('selectFilePicker error', error);
-    }
   }
 }
 
