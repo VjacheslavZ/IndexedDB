@@ -6,6 +6,18 @@ type TStore = Record<
   { keyPath: string; autoIncrement: boolean; index?: string }
 >;
 
+/*
+  TODO:
+  - add validation
+  - add unit tests
+  - docs
+    * add examples
+  - Cursor
+    * Improve usage for where clause ({ where: '' }))
+    * Improve usage for direction
+  - Add logging
+*/
+
 export class IndexedDB {
   #db!: IDBDatabase;
   #dbName: string;
@@ -32,7 +44,7 @@ export class IndexedDB {
               keyPath,
               autoIncrement,
             });
-            console.log('index', index);
+
             if (index) {
               result.createIndex(index, index, { unique: false });
             }
@@ -77,7 +89,8 @@ export class IndexedDB {
     const isArrayStores = Array.isArray(storeNames);
     const storeNamesArray = isArrayStores ? storeNames : [storeNames];
     // @ts-ignore
-    const { promise, resolve, reject } = Promise.withResolvers<T>();
+    const { resolve, reject } = Promise.withResolvers<T>();
+
     const tx = this.#db.transaction(storeNames, mode);
 
     const stores: { [name: string]: PromisifyTransaction } = {};
@@ -95,8 +108,6 @@ export class IndexedDB {
       tx.abort();
       reject(error);
     }
-
-    return promise;
   }
 
   async add(storeName: string, data: unknown) {
@@ -141,7 +152,6 @@ export class IndexedDB {
     direction: IDBCursorDirection = 'next',
     indexName?: string
   ) {
-    // TODO use with resolvers
     return this.#exec(storeName, 'readonly', store => {
       const source = indexName ? store.index(indexName) : store;
       const cursorRequest = source.openCursor(query, direction);
@@ -194,8 +204,8 @@ export class IndexedDB {
 
               cursorRequest.onsuccess = () => {
                 const cursor = cursorRequest.result;
-                if (cursor) resolve({ value: cursor, done: false });
-                else resolve({ value: undefined, done: true });
+                if (cursor) return resolve({ value: cursor, done: false });
+                else return resolve({ value: undefined, done: true });
               };
               cursorRequest.onerror = () => reject(cursorRequest.error);
             });
