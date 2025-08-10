@@ -145,7 +145,9 @@ export function FileTree({
     setMenuNodeId(null);
   };
 
-  const commitRename = (id: string, newName: string) => {
+  const commitRename = async (id: string, newName: string) => {
+    await fsManager.renameFile(id, newName);
+
     const trimmed = newName.trim();
     if (!trimmed) {
       setRenamingId(null);
@@ -155,6 +157,9 @@ export function FileTree({
     setTree(prev => renameInTree(prev, id, trimmed));
     if (node) renameCb(node, trimmed);
     setRenamingId(null);
+
+    const files = await fsManager.getListFiles();
+    setTree(files as []);
   };
 
   const deleteByIds = async (idsToDelete: Set<string>) => {

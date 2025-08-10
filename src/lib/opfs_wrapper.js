@@ -43,6 +43,33 @@ export default class FileSystemStorage {
     }
   }
 
+  async renameFile(filePath, newFileName) {
+    try {
+      const { dirHandle, fileName: oldFileName } =
+        await this.getDirHandleFromPath(this.#rootDir, filePath);
+
+      const fileHandle = await dirHandle.getFileHandle(oldFileName);
+      await fileHandle.move(newFileName);
+    } catch (error) {
+      opfsErrorsHandler(error, 'rename', filePath.replace('/', ''));
+    }
+  }
+
+  // async renameFolder(oldFolderName, newFolderName) {
+  //   try {
+  //     const oldFolderHandle = await this.#rootDir.getDirectoryHandle(
+  //       oldFolderName
+  //     );
+
+  //     // Rename the folder
+  //     await oldFolderHandle.move(newFolderName);
+
+  //     console.log(`Folder "${oldFolderName}" renamed to "${newFolderName}".`);
+  //   } catch (error) {
+  //     console.error('Error renaming folder:', error);
+  //   }
+  // }
+
   async getDirHandleFromPath(rootHandle, fullPath) {
     const parts = fullPath.replace(/^\/+|\/+$/g, '').split('/');
     const fileName = parts.pop();

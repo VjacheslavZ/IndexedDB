@@ -42,6 +42,10 @@ class FileSystemManager {
   async deleteFile(path) {
     return this.#rootDir.deleteFile(path);
   }
+
+  async renameFile(oldPath, newPath) {
+    return this.#rootDir.renameFile(oldPath, newPath);
+  }
 }
 
 export default FileSystemManager;
