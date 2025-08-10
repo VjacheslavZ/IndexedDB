@@ -10,12 +10,10 @@ const sourceNotProvidedError = () => {
 };
 
 class FileSystemManager {
-  #opfs;
-  #nativeRoot;
+  #rootDir;
 
-  constructor() {
-    this.#opfs = new FileSystemStorage();
-    this.#nativeRoot = new FileSystemStorage(true);
+  constructor(isUseNativeDir) {
+    this.#rootDir = new FileSystemStorage(isUseNativeDir);
   }
 
   async selectFilePicker() {
@@ -28,35 +26,36 @@ class FileSystemManager {
     }
   }
 
+  async showDirectoryPicker() {
+    try {
+      await this.#rootDir.initNativeRoot(true);
+    } catch (error) {
+      console.log('showDirectoryPicker error', error);
+    }
+  }
+
   async writeFile(source, path, data, options) {
     if (source === 'opfs') {
-      return this.#opfs.writeFile(path, data, options);
+      return this.#rootDir.writeFile(path, data, options);
     }
     if (source === 'native') {
-      return this.#nativeRoot.writeFile(path, data, options);
+      return this.#rootDir.writeFile(path, data, options);
     }
 
     sourceNotProvidedError();
   }
 
-  async getListFiles(source) {
-    if (source === 'opfs') {
-      return this.#opfs.listFiles();
-    }
-    if (source === 'native') {
-      return this.#nativeRoot.listFiles();
-    }
-
-    sourceNotProvidedError();
+  async getListFiles() {
+    return this.#rootDir.listFiles();
   }
 
   async readFile(source, path) {
     try {
       if (source === 'opfs') {
-        return await this.#opfs.readFile(path);
+        return await this.#rootDir.readFile(path);
       }
       if (source === 'native') {
-        return await this.#nativeRoot.readFile(path);
+        return await this.#rootDir.readFile(path);
       }
 
       sourceNotProvidedError();
@@ -66,7 +65,9 @@ class FileSystemManager {
   }
 
   async deleteFile(path) {
-    return await this.#opfs.deleteFile(path);
+    // return await this.#opfs.deleteFile(path);
+    // return await this.#nativeRoot.removeEntry(path);
+    return this.#rootDir.deleteFile(path);
   }
 }
 

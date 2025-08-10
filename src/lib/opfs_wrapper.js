@@ -54,11 +54,29 @@ export default class FileSystemStorage {
     }
   }
 
-  async deleteFile(fileName) {
+  async getDirHandleFromPath(rootHandle, fullPath) {
+    // Remove leading/trailing slashes, then split
+    const parts = fullPath.replace(/^\/+|\/+$/g, '').split('/');
+    const fileName = parts.pop(); // Last part is the file
+    let currentHandle = rootHandle;
+
+    // Navigate to the target directory
+    for (const part of parts) {
+      currentHandle = await currentHandle.getDirectoryHandle(part);
+    }
+
+    return { dirHandle: currentHandle, fileName };
+  }
+
+  async deleteFile(file) {
     try {
-      await this.#rootDir.removeEntry(fileName);
+      const { dirHandle, fileName } = await this.getDirHandleFromPath(
+        this.#rootDir,
+        file
+      );
+      await dirHandle.removeEntry(fileName);
     } catch (error) {
-      opfsErrorsHandler(error, 'readwrite', fileName);
+      opfsErrorsHandler(error, 'readwrite', file);
     }
   }
 
@@ -70,23 +88,27 @@ export default class FileSystemStorage {
     }
   }
 
-  async listFiles() {
+  async listFiles(dirHandle = this.#rootDir, path = '') {
     try {
-      await this.initNativeRoot();
-
       const files = [];
-      for await (const [name, handle] of this.#rootDir.entries()) {
-        const fullPath = `${name}`;
+
+      for await (const [name, handle] of dirHandle.entries()) {
+        const fullPath = `${path}/${name}`;
 
         if (handle.kind === 'file') {
           files.push({
-            name: fullPath,
-            kind: 'file',
+            id: fullPath,
+            name: name,
+            path: fullPath,
+            type: 'file',
           });
         } else if (handle.kind === 'directory') {
           files.push({
-            name: fullPath,
-            kind: 'directory',
+            id: fullPath,
+            name: name,
+            path: fullPath,
+            type: 'folder',
+            children: await this.listFiles(handle, fullPath), // Pass the subdirectory handle
           });
         }
       }

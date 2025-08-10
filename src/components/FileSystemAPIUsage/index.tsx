@@ -47,13 +47,13 @@ const FileSystemAPIUsage: FC = () => {
   };
 
   const readFileFromNative = async () => {
-    const content = await opfsManager.readFile('native');
+    const content = await opfsManager.readFile('native', { multiple: true });
     console.log('content', content);
   };
 
   const getListFiles = async () => {
     try {
-      const files = await opfsManager.getListFiles('native');
+      const files = await opfsManager.getListFiles();
       console.log('files', files);
     } catch (error) {
       console.log('getListFiles error', error);

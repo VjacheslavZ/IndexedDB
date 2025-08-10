@@ -17,7 +17,7 @@ const OriginPrivateFileSystemUsage: FC = () => {
       try {
         // TODO investigate
         await fs.init();
-        const files = await fsManager.getListFiles('opfs');
+        const files = await fsManager.getListFiles();
         setFiles(files as []);
       } catch (error) {
         console.log('Init failed', error);
