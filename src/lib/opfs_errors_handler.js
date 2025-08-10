@@ -1,4 +1,7 @@
 const opfsErrorsHandler = (error, mode = 'read', fileName = '') => {
+  console.log('error', error);
+  console.log('error.name', error.name);
+  console.log('fileName', fileName);
   const errors = {
     QuotaExceededError: 'The user has reached their storage quota',
     NotAllowedError: `The permission for the handle is not granted in ${mode} mode.`,

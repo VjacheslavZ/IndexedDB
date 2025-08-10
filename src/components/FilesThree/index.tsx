@@ -368,6 +368,41 @@ export function FileTree({
 
   const flatHasItems = tree.length > 0;
 
+  const createFile = async () => {
+    try {
+      const now = new Date()
+        .toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false,
+        })
+        .replace(/:/g, '-');
+      const fileName = `${now}.txt`;
+      await fsManager.writeFile(fileName, 'document content', {
+        create: true,
+      });
+    } catch (error) {
+      console.log('Error in createFile', error);
+    }
+  };
+
+  const printInConsole = async () => {
+    const fileName = prompt('Enter file name:');
+    if (!fileName) return;
+    const content = await fsManager.readFile(fileName);
+    console.log('content', content);
+  };
+
+  const createDirectory = async () => {
+    const directoryName = prompt('Enter directory name:');
+    if (!directoryName) return;
+    await fsManager.createDirectory(directoryName);
+  };
+
   return (
     <Paper
       elevation={0}
@@ -394,6 +429,36 @@ export function FileTree({
           {title}
         </Typography>
 
+        <Box>
+          <Button
+            variant='contained'
+            color='primary'
+            size='small'
+            onClick={createDirectory}
+          >
+            Create directory
+          </Button>
+        </Box>
+        <Box>
+          <Button
+            variant='contained'
+            color='primary'
+            size='small'
+            onClick={createFile}
+          >
+            Create file
+          </Button>
+        </Box>
+        <Box>
+          <Button
+            variant='contained'
+            color='primary'
+            size='small'
+            onClick={printInConsole}
+          >
+            Print in console
+          </Button>
+        </Box>
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
           {selected.size > 0 && (
             <Tooltip title={`Delete ${selected.size} selected`}>

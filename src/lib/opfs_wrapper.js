@@ -1,8 +1,8 @@
 import opfsErrorsHandler from './opfs_errors_handler';
 
 export default class FileSystemStorage {
-  #rootDir = navigator.storage.getDirectory();
   #isUseNativeDir = null;
+  #rootDir = navigator.storage.getDirectory();
 
   constructor(isUseNativeDir = false) {
     this.#isUseNativeDir = isUseNativeDir;
@@ -10,9 +10,6 @@ export default class FileSystemStorage {
   }
 
   async init(isUseNativeDir) {
-    // this.#rootDir = isUseNativeDir
-    //   ? null
-    //   : await navigator.storage.getDirectory();
     this.#rootDir = await navigator.storage.getDirectory();
   }
 
@@ -24,8 +21,6 @@ export default class FileSystemStorage {
 
   async writeFile(path, file, options = { create: false }) {
     try {
-      await this.initNativeRoot();
-
       const handle = await this.#rootDir.getFileHandle(path, {
         create: options.create,
       });
@@ -33,19 +28,12 @@ export default class FileSystemStorage {
       await writable.write(file);
       await writable.close();
     } catch (error) {
-      opfsErrorsHandler(error, 'write');
+      opfsErrorsHandler(error, 'write', path);
     }
   }
 
   async readFile(fileName) {
     try {
-      if (this.#isUseNativeDir) {
-        const [fileHandle] = await window.showOpenFilePicker();
-        const file = await fileHandle.getFile();
-        const content = await file.text();
-        return content;
-      }
-
       const handleFile = await this.#rootDir.getFileHandle(fileName);
       const file = await handleFile.getFile();
       const content = await file.text();
@@ -56,12 +44,10 @@ export default class FileSystemStorage {
   }
 
   async getDirHandleFromPath(rootHandle, fullPath) {
-    // Remove leading/trailing slashes, then split
     const parts = fullPath.replace(/^\/+|\/+$/g, '').split('/');
-    const fileName = parts.pop(); // Last part is the file
+    const fileName = parts.pop();
     let currentHandle = rootHandle;
 
-    // Navigate to the target directory
     for (const part of parts) {
       currentHandle = await currentHandle.getDirectoryHandle(part);
     }
@@ -94,7 +80,6 @@ export default class FileSystemStorage {
       const files = [];
 
       for await (const [name, handle] of dirHandle.entries()) {
-        console.log('name', name);
         const fullPath = `${path}/${name}`;
 
         if (handle.kind === 'file') {
@@ -110,7 +95,7 @@ export default class FileSystemStorage {
             name: name,
             path: fullPath,
             type: 'folder',
-            children: await this.listFiles(handle, fullPath), // Pass the subdirectory handle
+            children: await this.listFiles(handle, fullPath),
           });
         }
       }

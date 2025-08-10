@@ -3,9 +3,6 @@ import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
 import { BrowserRouter, Routes, Route } from 'react-router';
 
 import IndexedDBUsage from './components/IndexedDBUsage';
-import FileSystemAPIUsage from './components/FileSystemAPIUsage';
-import OriginPrivateFileSystemUsage from './components/OriginPrivateFileSystemUsage';
-// import FilesThree from './components/FilesThree';
 import FileSystemDemo from './components/FileSystemDemo';
 import OpfsDemo from './components/OpfsDemo';
 
@@ -34,8 +31,6 @@ const App: React.FC = () => {
             path='/file-system-api'
             element={
               <div>
-                <FileSystemAPIUsage />
-                <OriginPrivateFileSystemUsage />
                 <OpfsDemo />
                 <FileSystemDemo />
               </div>

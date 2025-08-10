@@ -7,16 +7,6 @@ class FileSystemManager {
     this.#rootDir = new FileSystemStorage(isUseNativeDir);
   }
 
-  async selectFilePicker() {
-    try {
-      const [fileHandle] = await window.showOpenFilePicker();
-      const file = await fileHandle.getFile();
-      return file;
-    } catch (error) {
-      console.log('selectFilePicker error', error);
-    }
-  }
-
   async showDirectoryPicker() {
     try {
       await this.#rootDir.initNativeRoot(true);
@@ -25,8 +15,12 @@ class FileSystemManager {
     }
   }
 
-  async writeFile(source, path, data, options) {
+  async writeFile(path, data, options) {
     return this.#rootDir.writeFile(path, data, options);
+  }
+
+  async createDirectory(path) {
+    return this.#rootDir.createDirectory(path);
   }
 
   async getListFiles() {
