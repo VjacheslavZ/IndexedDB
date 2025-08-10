@@ -1,14 +1,5 @@
 import FileSystemStorage from './opfs_wrapper';
 
-const sourceNotProvidedError = () => {
-  throw new Error(
-    'Argument "source"  is not provided pass "opfs" or "native" as a first argument',
-    {
-      cause: 'Source target not provided',
-    }
-  );
-};
-
 class FileSystemManager {
   #rootDir;
 
@@ -35,38 +26,26 @@ class FileSystemManager {
   }
 
   async writeFile(source, path, data, options) {
-    if (source === 'opfs') {
-      return this.#rootDir.writeFile(path, data, options);
-    }
-    if (source === 'native') {
-      return this.#rootDir.writeFile(path, data, options);
-    }
-
-    sourceNotProvidedError();
+    return this.#rootDir.writeFile(path, data, options);
   }
 
   async getListFiles() {
-    return this.#rootDir.listFiles();
+    try {
+      return await this.#rootDir.listFiles();
+    } catch (error) {
+      console.log('getListFiles error', error);
+    }
   }
 
-  async readFile(source, path) {
+  async readFile(path) {
     try {
-      if (source === 'opfs') {
-        return await this.#rootDir.readFile(path);
-      }
-      if (source === 'native') {
-        return await this.#rootDir.readFile(path);
-      }
-
-      sourceNotProvidedError();
+      return await this.#rootDir.readFile(path);
     } catch (error) {
       console.log('Error in error readFile', error);
     }
   }
 
   async deleteFile(path) {
-    // return await this.#opfs.deleteFile(path);
-    // return await this.#nativeRoot.removeEntry(path);
     return this.#rootDir.deleteFile(path);
   }
 }

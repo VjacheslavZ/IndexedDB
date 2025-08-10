@@ -1,7 +1,7 @@
 import opfsErrorsHandler from './opfs_errors_handler';
 
 export default class FileSystemStorage {
-  #rootDir = null;
+  #rootDir = navigator.storage.getDirectory();
   #isUseNativeDir = null;
 
   constructor(isUseNativeDir = false) {
@@ -10,9 +10,10 @@ export default class FileSystemStorage {
   }
 
   async init(isUseNativeDir) {
-    this.#rootDir = isUseNativeDir
-      ? null
-      : await navigator.storage.getDirectory();
+    // this.#rootDir = isUseNativeDir
+    //   ? null
+    //   : await navigator.storage.getDirectory();
+    this.#rootDir = await navigator.storage.getDirectory();
   }
 
   async initNativeRoot() {
@@ -93,6 +94,7 @@ export default class FileSystemStorage {
       const files = [];
 
       for await (const [name, handle] of dirHandle.entries()) {
+        console.log('name', name);
         const fullPath = `${path}/${name}`;
 
         if (handle.kind === 'file') {
@@ -115,6 +117,7 @@ export default class FileSystemStorage {
 
       return files;
     } catch (error) {
+      console.log('listFiles error', error);
       opfsErrorsHandler(error, 'read');
     }
   }

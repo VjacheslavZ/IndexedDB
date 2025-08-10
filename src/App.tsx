@@ -5,7 +5,9 @@ import { BrowserRouter, Routes, Route } from 'react-router';
 import IndexedDBUsage from './components/IndexedDBUsage';
 import FileSystemAPIUsage from './components/FileSystemAPIUsage';
 import OriginPrivateFileSystemUsage from './components/OriginPrivateFileSystemUsage';
-import FilesThree from './components/FilesThree';
+// import FilesThree from './components/FilesThree';
+import FileSystemDemo from './components/FileSystemDemo';
+import OpfsDemo from './components/OpfsDemo';
 
 const theme = createTheme({
   palette: {
@@ -34,7 +36,8 @@ const App: React.FC = () => {
               <div>
                 <FileSystemAPIUsage />
                 <OriginPrivateFileSystemUsage />
-                <FilesThree />
+                <OpfsDemo />
+                <FileSystemDemo />
               </div>
             }
           />

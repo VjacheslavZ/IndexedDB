@@ -42,12 +42,12 @@ const FileSystemAPIUsage: FC = () => {
   const readFile = async () => {
     const fileName = prompt('Enter file name:');
     if (!fileName) return;
-    const content = await opfsManager.readFile('opfs', fileName);
+    const content = await opfsManager.readFile(fileName);
     console.log('content', content);
   };
 
   const readFileFromNative = async () => {
-    const content = await opfsManager.readFile('native', { multiple: true });
+    const content = await opfsManager.readFile({ multiple: true });
     console.log('content', content);
   };
 

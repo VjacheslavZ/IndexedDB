@@ -1,7 +1,7 @@
 import FileSystemManager from '../../lib/file_system_manager';
 
 import * as React from 'react';
-import { useState } from 'react';
+import { useEffect } from 'react';
 
 import {
   Box,
@@ -39,6 +39,7 @@ import {
   renameInTree,
   findNodeAndPath,
 } from './utils';
+import FileSystemStorage from '../../lib/opfs_wrapper';
 
 export type FileNode = {
   id: string;
@@ -59,9 +60,9 @@ type FileTreeProps = {
   multiSelect?: boolean;
   height?: number | string;
   title?: string;
+  fsManager: FileSystemManager;
+  useNativeSystem?: boolean;
 };
-
-const fsManager = new FileSystemManager(true);
 
 export function FileTree({
   data = [],
@@ -71,7 +72,21 @@ export function FileTree({
   multiSelect = true,
   height = 520,
   title = 'Files',
+  fsManager,
+  useNativeSystem = false,
 }: FileTreeProps) {
+  useEffect(() => {
+    if (!useNativeSystem) {
+      (async () => {
+        // TODO rewrite to avoid use  fs.init
+        const fs = new FileSystemStorage();
+        await fs.init();
+        const files = await fsManager.getListFiles();
+        setTree(files as []);
+      })();
+    }
+  }, [useNativeSystem]);
+
   const [tree, setTree] = React.useState<FileNode[]>(data);
   const [expanded, setExpanded] = React.useState<Set<string>>(new Set());
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
@@ -401,19 +416,21 @@ export function FileTree({
           <Box sx={{ p: 2 }}>
             <Typography variant='body2' color='text.secondary'>
               {'No files or folders.'}
-              <Button
-                variant='contained'
-                color='primary'
-                size='small'
-                onClick={async () => {
-                  await fsManager.showDirectoryPicker();
-                  const files = await fsManager.getListFiles();
-                  setTree(files as []);
-                  console.log('files', files);
-                }}
-              >
-                {'Select working directory'}
-              </Button>
+              {useNativeSystem && (
+                <Button
+                  variant='contained'
+                  color='primary'
+                  size='small'
+                  onClick={async () => {
+                    await fsManager.showDirectoryPicker();
+                    const files = await fsManager.getListFiles();
+                    setTree(files as []);
+                    console.log('files', files);
+                  }}
+                >
+                  {'Select working directory'}
+                </Button>
+              )}
             </Typography>
           </Box>
         ) : (
