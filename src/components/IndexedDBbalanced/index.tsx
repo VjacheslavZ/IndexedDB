@@ -1,42 +1,53 @@
 import { FC, useEffect, useState } from 'react';
 import { Button, ButtonGroup, Grid } from '@mui/material';
 
-import { Database } from '../../lib/w9/Balanced/storage';
-
-const schemas = {
-  user: {
-    id: { type: 'int', primary: true },
-    name: { type: 'str', index: true },
-    age: { type: 'int' },
-  },
-};
+import userService from '../../lib/w9/Balanced/user';
 
 const IndexedDBBalanced: FC = () => {
-  const [db, setDb] = useState<Database>(
-    new Database('test', { version: 1, schemas })
-  );
-
-  useEffect(() => {
-    (async () => {
-      const db = await new Database('test', { version: 1, schemas });
-      setDb(db);
-    })();
-  }, []);
-
   const addUser = async () => {
-    await db.insert({ store: 'user', record: { name: 'John', age: 20 } });
+    const age = parseInt(prompt('Enter user age:') ?? '0', 10);
+    const { result } = await userService.insert({
+      store: 'user',
+      record: { name: 'John', age },
+    });
+
+    userService.insert({
+      store: 'userLogs',
+      record: {
+        action: 'add_user',
+        user_id: result,
+        previous_value: -1,
+        new_value: age,
+      },
+    });
   };
 
   const selectAllUsers = async () => {
-    // @ts-ignore
-    const allUsers = await db.select({ store: 'user' });
-    console.log('users', allUsers);
+    try {
+      const allUsers = await userService.openCursor({
+        store: 'user',
+        indexName: 'age',
+        where: ['≥', 18],
+        offset: 0,
+        limit: 4,
+        direction: 'prev',
+      });
+      console.log('allUsers', allUsers);
+    } catch (error) {
+      console.log('error', error);
+    }
   };
 
   const deleteUser = async () => {
     const id = parseInt(prompt('Enter user id:') ?? '0', 10);
     if (!id) return;
-    await db?.delete({ store: 'user', id });
+    await userService.delete({ store: 'user', id });
+  };
+
+  const incrementAge = async () => {
+    const id = parseInt(prompt('Enter user id:') ?? '0', 10);
+    if (!id) return;
+    await userService.incrementAge(id);
   };
 
   return (
@@ -53,6 +64,10 @@ const IndexedDBBalanced: FC = () => {
 
           <Button variant='contained' color='primary' onClick={selectAllUsers}>
             Select all Users
+          </Button>
+
+          <Button variant='contained' color='primary' onClick={incrementAge}>
+            Increment Age
           </Button>
         </ButtonGroup>
       </Grid>

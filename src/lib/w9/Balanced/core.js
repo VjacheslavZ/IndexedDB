@@ -1,36 +1,9 @@
-class Validate {
-  #schemas;
-
-  constructor(schemas) {
-    this.#schemas = schemas;
-  }
-
-  validate({ store, record }) {
-    const schema = this.#schemas[store];
-    if (!schema) throw new Error(`Schema for ${store} is not defined`);
-    for (const [key, val] of Object.entries(record)) {
-      const field = schema[key];
-      const name = `Field ${store}.${key}`;
-      if (!field) throw new Error(`${name} is not defined`);
-      if (field.type === 'int') {
-        if (Number.isInteger(val)) continue;
-        throw new Error(`${name} expected to be integer`);
-      } else if (field.type === 'str') {
-        if (typeof val === 'string') continue;
-        throw new Error(`${name} expected to be string`);
-      }
-    }
-  }
-}
+import SchemaValidate from './schema_validate.js';
+import { getRange } from './utils.js';
 
 class Repository {
-  #instance;
-  #active = false;
-
-  constructor(database, schemas) {
-    this.#instance = database;
-    this.#active = true;
-    this.validate = new Validate(schemas);
+  constructor(schemas) {
+    this.validate = new SchemaValidate(schemas);
   }
 
   insert({ store, record }) {
@@ -58,49 +31,44 @@ class Repository {
     return this.exec(store, op, 'readonly');
   }
 
-  select({ store, where, limit, offset, order, filter, sort }) {
+  async openCursor({
+    store,
+    where = [],
+    indexName,
+    direction = 'next',
+    offset = 0,
+    limit = 0,
+  }) {
     const op = objectStore => {
-      const result = [];
       let skipped = 0;
+      let count = 0;
+
+      const source = indexName ? objectStore.index(indexName) : objectStore;
+      const cursorRequest = source.openCursor(getRange(where), direction);
+
+      const results = [];
+
       return new Promise((resolve, reject) => {
-        const reply = () => {
-          if (sort) result.sort(sort);
-          if (order) Repository.sort(result, order);
-          resolve(result);
-        };
-        const req = objectStore.openCursor();
-        req.onerror = () => reject(req.error);
-        req.onsuccess = event => {
-          const cursor = event.target.result;
-          if (!cursor) return void reply();
-          const record = cursor.value;
-          const check = ([key, val]) => record[key] === val;
-          const match = !where || Object.entries(where).every(check);
-          const valid = !filter || filter(record);
-          if (match && valid) {
-            if (!offset || skipped >= offset) result.push(record);
-            else skipped++;
-            if (limit && result.length >= limit) return void reply();
+        cursorRequest.onsuccess = e => {
+          const cursor = e.target.result;
+          if (!cursor) return resolve(results);
+          if (skipped < offset) {
+            skipped++;
+            cursor.continue();
+            return;
           }
-          cursor.continue();
+          if (count < limit) {
+            count++;
+            results.push(cursor.value);
+            cursor.continue();
+          } else {
+            resolve(results);
+          }
         };
+        cursorRequest.onerror = () => reject(cursorRequest.error);
       });
     };
     return this.exec(store, op, 'readonly');
-  }
-
-  static sort(arr, order) {
-    if (typeof order !== 'object') return;
-    const rule = Object.entries(order)[0];
-    if (!Array.isArray(rule)) return;
-    const [field, dir = 'asc'] = rule;
-    const sign = dir === 'desc' ? -1 : 1;
-    arr.sort((a, b) => {
-      const x = a[field];
-      const y = b[field];
-      if (x === y) return 0;
-      return x > y ? sign : -sign;
-    });
   }
 }
 
