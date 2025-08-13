@@ -25,6 +25,16 @@ class UserService extends Database {
     if (!user) throw new Error('User with id=1 not found');
     user.age += 1;
     await this.update({ store: 'user', record: user });
+    await this.insert({
+      store: 'userLogs',
+      record: {
+        action: 'increment_user_age',
+        user_id: id,
+        previous_value: user.age,
+        new_value: user.age + 1,
+      },
+    });
+
     return user;
   }
   /**
