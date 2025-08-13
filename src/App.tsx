@@ -5,6 +5,7 @@ import { BrowserRouter, Routes, Route } from 'react-router';
 import IndexedDBUsage from './components/IndexedDBUsage';
 import FileSystemDemo from './components/FileSystemDemo';
 import OpfsDemo from './components/OpfsDemo';
+import IndexedDBBalanced from './components/IndexedDBbalanced';
 
 const theme = createTheme({
   palette: {
@@ -36,6 +37,7 @@ const App: React.FC = () => {
               </div>
             }
           />
+          <Route path='/indexed-db-balanced' element={<IndexedDBBalanced />} />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>
