@@ -42,10 +42,10 @@ class UserService extends Database {
    */
 }
 // Usage:
-const userService = await new UserService('test', { version: 1, schemas });
+const userService = await new UserService('balanced', { version: 1, schemas });
 // userService.insert({ store: 'user', record: { name: 'John', age: 20 } })
 // userService.incrementAge(1)
 export default userService;
 // alternative usage:
-// const db = await new Database('test', { version: 1, schemas });
+// const db = await new Database('balanced', { version: 1, schemas });
 // await db.insert({ store: 'user', record: { name: 'John', age: 20 } })
