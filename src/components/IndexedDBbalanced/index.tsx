@@ -12,7 +12,9 @@ const schemas = {
 };
 
 const IndexedDBBalanced: FC = () => {
-  const [db, setDb] = useState<Database | null>(null);
+  const [db, setDb] = useState<Database>(
+    new Database('test', { version: 1, schemas })
+  );
 
   useEffect(() => {
     (async () => {
@@ -22,12 +24,12 @@ const IndexedDBBalanced: FC = () => {
   }, []);
 
   const addUser = async () => {
-    await db?.insert({ store: 'user', record: { name: 'John', age: 20 } });
+    await db.insert({ store: 'user', record: { name: 'John', age: 20 } });
   };
 
   const selectAllUsers = async () => {
     // @ts-ignore
-    const allUsers = await db?.select({ store: 'user' });
+    const allUsers = await db.select({ store: 'user' });
     console.log('users', allUsers);
   };
 
