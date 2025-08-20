@@ -1,3 +1,4 @@
+import Repository from './core.js';
 import { Database } from './storage.js';
 
 const schemas = {
@@ -15,17 +16,17 @@ const schemas = {
   },
 };
 
-class UserService extends Database {
-  constructor(name, { version = 1, schemas = {} } = {}) {
-    super(name, { version, schemas });
+class UserService {
+  constructor(repository) {
+    this.repository = repository;
   }
 
   async incrementAge(id) {
-    const user = await this.get({ store: 'user', id });
+    const user = await this.repository.get({ store: 'user', id });
     if (!user) throw new Error('User with id=1 not found');
     user.age += 1;
-    await this.update({ store: 'user', record: user });
-    await this.insert({
+    await this.repository.update({ store: 'user', record: user });
+    await this.repository.insert({
       store: 'userLogs',
       record: {
         action: 'increment_user_age',
@@ -37,15 +38,49 @@ class UserService extends Database {
 
     return user;
   }
-  /**
-   * Others methods here
-   */
+
+  async addUser(name, age) {
+    const { result } = await this.repository.insert({
+      store: 'user',
+      record: { name, age },
+    });
+    this.repository.insert({
+      store: 'userLogs',
+      record: {
+        action: 'add_user',
+        user_id: result,
+        previous_value: -1,
+        new_value: age,
+      },
+    });
+
+    return result;
+  }
+
+  selectAllUsers = async () => {
+    try {
+      const allUsers = await this.repository.openCursor({
+        store: 'user',
+        indexName: 'age',
+        where: ['≥', 18],
+        offset: 0,
+        limit: 4,
+        direction: 'prev',
+      });
+      console.log('allUsers', allUsers);
+    } catch (error) {
+      console.log('error', error);
+    }
+  };
+
+  deleteUser = async id => {
+    if (!id) return;
+    await this.repository.delete({ store: 'user', id });
+  };
 }
 // Usage:
-const userService = await new UserService('balanced', { version: 1, schemas });
-// userService.insert({ store: 'user', record: { name: 'John', age: 20 } })
-// userService.incrementAge(1)
+const db = await new Database('balanced', { version: 1, schemas });
+const userRepository = new Repository(db, schemas);
+const userService = await new UserService(userRepository);
+
 export default userService;
-// alternative usage:
-// const db = await new Database('balanced', { version: 1, schemas });
-// await db.insert({ store: 'user', record: { name: 'John', age: 20 } })

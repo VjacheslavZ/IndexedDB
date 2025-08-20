@@ -1,47 +1,22 @@
-import { FC, useEffect, useState } from 'react';
+import { FC } from 'react';
 import { Button, ButtonGroup, Grid } from '@mui/material';
 
 import userService from '../../lib/w9/Balanced/user';
 
 const IndexedDBBalanced: FC = () => {
   const addUser = async () => {
+    const name = prompt('Enter user name:');
     const age = parseInt(prompt('Enter user age:') ?? '0', 10);
-    const { result } = await userService.insert({
-      store: 'user',
-      record: { name: 'John', age },
-    });
-
-    userService.insert({
-      store: 'userLogs',
-      record: {
-        action: 'add_user',
-        user_id: result,
-        previous_value: -1,
-        new_value: age,
-      },
-    });
+    await userService.addUser(name, age);
   };
 
   const selectAllUsers = async () => {
-    try {
-      const allUsers = await userService.openCursor({
-        store: 'user',
-        indexName: 'age',
-        where: ['≥', 18],
-        offset: 0,
-        limit: 4,
-        direction: 'prev',
-      });
-      console.log('allUsers', allUsers);
-    } catch (error) {
-      console.log('error', error);
-    }
+    await userService.selectAllUsers();
   };
 
   const deleteUser = async () => {
     const id = parseInt(prompt('Enter user id:') ?? '0', 10);
-    if (!id) return;
-    await userService.delete({ store: 'user', id });
+    await userService.deleteUser(id);
   };
 
   const incrementAge = async () => {

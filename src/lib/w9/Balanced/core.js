@@ -2,22 +2,23 @@ import SchemaValidate from './schema_validate.js';
 import { getRange } from './utils.js';
 
 class Repository {
-  constructor(schemas) {
+  constructor(db, schemas) {
+    this.db = db;
     this.validate = new SchemaValidate(schemas);
   }
 
   insert({ store, record }) {
     this.validate.validate({ store, record });
-    return this.exec(store, objectStore => objectStore.add(record));
+    return this.db.exec(store, objectStore => objectStore.add(record));
   }
 
   update({ store, record }) {
     this.validate.validate({ store, record });
-    return this.exec(store, objectStore => objectStore.put(record));
+    return this.db.exec(store, objectStore => objectStore.put(record));
   }
 
   delete({ store, id }) {
-    return this.exec(store, objectStore => objectStore.delete(id));
+    return this.db.exec(store, objectStore => objectStore.delete(id));
   }
 
   get({ store, id }) {
@@ -28,7 +29,8 @@ class Repository {
         req.onerror = () => reject(req.error ?? new Error(`Can't get ${id}`));
       });
     };
-    return this.exec(store, op, 'readonly');
+
+    return this.db.exec(store, op, 'readonly');
   }
 
   async openCursor({
@@ -68,7 +70,7 @@ class Repository {
         cursorRequest.onerror = () => reject(cursorRequest.error);
       });
     };
-    return this.exec(store, op, 'readonly');
+    return this.db.exec(store, op, 'readonly');
   }
 }
 

@@ -1,6 +1,4 @@
-import Repository from './core.js';
-
-class Database extends Repository {
+class Database {
   #name;
   #version;
   #schemas;
@@ -8,7 +6,6 @@ class Database extends Repository {
   #active = false;
 
   constructor(name, { version = 1, schemas = {} } = {}) {
-    super(schemas);
     this.#name = name;
     this.#version = version;
     this.#schemas = schemas;
