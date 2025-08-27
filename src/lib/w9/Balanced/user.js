@@ -26,7 +26,7 @@ class UserService {
     if (!user) throw new Error('User with id=1 not found');
     user.age += 1;
     await this.repository.update({ store: 'user', record: user });
-    await this.repository.insert({
+    await this.repository.create({
       store: 'userLogs',
       record: {
         action: 'increment_user_age',
@@ -40,11 +40,11 @@ class UserService {
   }
 
   async addUser(name, age) {
-    const { result } = await this.repository.insert({
+    const { result } = await this.repository.create({
       store: 'user',
       record: { name, age },
     });
-    this.repository.insert({
+    this.repository.create({
       store: 'userLogs',
       record: {
         action: 'add_user',
@@ -59,7 +59,7 @@ class UserService {
 
   selectAllUsers = async () => {
     try {
-      const allUsers = await this.repository.openCursor({
+      const allUsers = await this.repository.select({
         store: 'user',
         indexName: 'age',
         where: ['≥', 18],
@@ -84,3 +84,4 @@ const userRepository = new Repository(db, schemas);
 const userService = await new UserService(userRepository);
 
 export default userService;
+//   over both opfs_and_indexedDB_storage_agnostic_layer

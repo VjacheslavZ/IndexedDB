@@ -7,7 +7,7 @@ class Repository {
     this.validate = new SchemaValidate(schemas);
   }
 
-  insert({ store, record }) {
+  create({ store, record }) {
     this.validate.validate({ store, record });
     return this.db.exec(store, objectStore => objectStore.add(record));
   }
@@ -33,7 +33,7 @@ class Repository {
     return this.db.exec(store, op, 'readonly');
   }
 
-  async openCursor({
+  async select({
     store,
     where = [],
     indexName,
