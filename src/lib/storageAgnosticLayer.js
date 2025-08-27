@@ -21,11 +21,13 @@ class StorageAgnosticLayer {
       return await this.repository.create({ store, record });
     }
     if (this.storeType === 'opfs') {
-      return await this.repository.writeFile(store, record, options);
+      return await this.repository.create(store, record, options);
     }
   }
 
-  async read() {}
+  async read({ store, indexName = '', where = [], direction } = {}) {
+    return this.repository.select({ store, indexName, where, direction });
+  }
   async update() {}
   async delete() {}
 }

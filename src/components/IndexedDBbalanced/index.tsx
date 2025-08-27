@@ -69,7 +69,15 @@ const IndexedDBBalanced: FC = () => {
           <Button
             variant='contained'
             color='primary'
-            onClick={indexedDBSelectAllUsers}
+            onClick={async () => {
+              const result = await indexedDBuserServiceAgnosticLayer.read({
+                store: 'user',
+                indexName: 'age',
+                where: ['≥', 0],
+                direction: 'prev',
+              });
+              console.log(result);
+            }}
           >
             Select all Users
           </Button>
@@ -102,7 +110,10 @@ const IndexedDBBalanced: FC = () => {
           <Button
             variant='contained'
             color='primary'
-            //onClick={selectAllUsers}
+            onClick={async () => {
+              const result = await opfsUserServiceAgnosticLayer.read();
+              console.log({ result });
+            }}
           >
             Select all Users
           </Button>

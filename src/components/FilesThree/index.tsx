@@ -81,7 +81,7 @@ export function FileTree({
         // TODO rewrite to avoid use  fs.init
         const fs = new FileSystemStorage();
         await fs.init();
-        const files = await fsManager.getListFiles();
+        const files = await fsManager.select();
         setTree(files as []);
       })();
     }
@@ -158,7 +158,7 @@ export function FileTree({
     if (node) renameCb(node, trimmed);
     setRenamingId(null);
 
-    const files = await fsManager.getListFiles();
+    const files = await fsManager.select();
     setTree(files as []);
   };
 
@@ -387,7 +387,7 @@ export function FileTree({
         })
         .replace(/:/g, '-');
       const fileName = `${now}.txt`;
-      await fsManager.writeFile(fileName, 'document content', {
+      await fsManager.create(fileName, 'document content', {
         create: true,
       });
     } catch (error) {
@@ -493,7 +493,7 @@ export function FileTree({
                   size='small'
                   onClick={async () => {
                     await fsManager.showDirectoryPicker();
-                    const files = await fsManager.getListFiles();
+                    const files = await fsManager.select();
                     setTree(files as []);
                     console.log('files', files);
                   }}

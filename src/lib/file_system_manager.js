@@ -15,7 +15,7 @@ class FileSystemManager {
     }
   }
 
-  async writeFile(path, data, options) {
+  async create(path, data, options) {
     return this.#rootDir.writeFile(path, data, options);
   }
 
@@ -23,7 +23,7 @@ class FileSystemManager {
     return this.#rootDir.createDirectory(path);
   }
 
-  async getListFiles() {
+  async select() {
     try {
       return await this.#rootDir.listFiles();
     } catch (error) {

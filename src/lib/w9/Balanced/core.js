@@ -8,6 +8,7 @@ class Repository {
   }
 
   create({ store, record }) {
+    console.log({ store, record });
     this.validate.validate({ store, record });
     return this.db.exec(store, objectStore => objectStore.add(record));
   }
@@ -39,8 +40,9 @@ class Repository {
     indexName,
     direction = 'next',
     offset = 0,
-    limit = 0,
+    limit = 20,
   }) {
+    console.log('where', where);
     const op = objectStore => {
       let skipped = 0;
       let count = 0;
