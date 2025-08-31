@@ -163,9 +163,8 @@ export function FileTree({
   };
 
   const deleteByIds = async (idsToDelete: Set<string>) => {
-    console.log('idsToDelete', idsToDelete);
     for (const id of idsToDelete) {
-      await fsManager.deleteFile(id);
+      await fsManager.delete(id);
     }
     setTree(prev => {
       const { next, deleted } = filterTreeByIds(prev, idsToDelete);
@@ -387,8 +386,10 @@ export function FileTree({
         })
         .replace(/:/g, '-');
       const fileName = `${now}.txt`;
-      await fsManager.create(fileName, 'document content', {
-        create: true,
+      await fsManager.create({
+        store: fileName,
+        record: 'document content',
+        options: { create: true },
       });
     } catch (error) {
       console.log('Error in createFile', error);

@@ -9,6 +9,7 @@ import {
 } from '../../lib/storageAgnosticLayer';
 
 const IndexedDBBalanced: FC = () => {
+  // indexed DB
   const indexedDBAddUser = async () => {
     const name = prompt('Enter user name:');
     const age = parseInt(prompt('Enter user age:') ?? '0', 10);
@@ -17,7 +18,34 @@ const IndexedDBBalanced: FC = () => {
       record: { name, age },
     });
   };
+  const indexedDBUpdateUser = async () => {
+    const id = parseInt(prompt('Enter user id:') ?? '0', 10);
+    if (!id) return;
+    const name = prompt('Enter user name:');
+    if (!name) return;
+    const age = parseInt(prompt('Enter age:') ?? '0', 10);
+    if (!Number.isInteger(age)) return;
 
+    await indexedDBuserServiceAgnosticLayer.update({
+      store: 'user',
+      record: { name, age, id },
+    });
+  };
+  const indexedDBSelectAll = async () => {
+    const result = await indexedDBuserServiceAgnosticLayer.read({
+      store: 'user',
+      indexName: 'age',
+      where: ['≥', 0],
+      direction: 'prev',
+    });
+    console.log(result);
+  };
+  const indexedDBDeleteUser = async () => {
+    const id = parseInt(prompt('Enter user id:') ?? '0', 10);
+    await userService.deleteUser(id);
+  };
+
+  // OPFS
   const opfsAddUser = async () => {
     const name = prompt('Enter user name:');
     const age = parseInt(prompt('Enter user age:') ?? '0', 10);
@@ -29,20 +57,31 @@ const IndexedDBBalanced: FC = () => {
       },
     });
   };
+  const opfsDBUpdateUser = async () => {
+    const fileName = prompt('Enter file name:');
+    if (!fileName) return;
 
-  const indexedDBSelectAllUsers = async () => {
-    await userService.selectAllUsers();
+    const name = prompt('Enter user name:');
+    if (!name) return;
+
+    const age = parseInt(prompt('Enter age:') ?? '0', 10);
+    if (!Number.isInteger(age)) return;
+
+    await opfsUserServiceAgnosticLayer.update({
+      store: fileName,
+      record: JSON.stringify({ name, age }),
+      options: {
+        create: true,
+      },
+    });
   };
-
-  const indexedDBDeleteUser = async () => {
-    const id = parseInt(prompt('Enter user id:') ?? '0', 10);
-    await userService.deleteUser(id);
+  const opfsDBDeleteUser = async () => {
+    const fileName = prompt('Enter user id:');
+    await opfsUserServiceAgnosticLayer.delete(fileName);
   };
-
-  const indexedDBIncrementAge = async () => {
-    const id = parseInt(prompt('Enter user id:') ?? '0', 10);
-    if (!id) return;
-    await userService.incrementAge(id);
+  const opfsDBSelectAll = async () => {
+    const result = await opfsUserServiceAgnosticLayer.read();
+    console.log(result);
   };
 
   return (
@@ -69,25 +108,17 @@ const IndexedDBBalanced: FC = () => {
           <Button
             variant='contained'
             color='primary'
-            onClick={async () => {
-              const result = await indexedDBuserServiceAgnosticLayer.read({
-                store: 'user',
-                indexName: 'age',
-                where: ['≥', 0],
-                direction: 'prev',
-              });
-              console.log(result);
-            }}
+            onClick={indexedDBUpdateUser}
           >
-            Select all Users
+            Update User
           </Button>
 
           <Button
             variant='contained'
             color='primary'
-            onClick={indexedDBIncrementAge}
+            onClick={indexedDBSelectAll}
           >
-            Increment Age
+            Select all Users
           </Button>
         </ButtonGroup>
       </Grid>
@@ -102,7 +133,7 @@ const IndexedDBBalanced: FC = () => {
           <Button
             variant='contained'
             color='primary'
-            //onClick={deleteUser}
+            onClick={opfsDBDeleteUser}
           >
             Delete User
           </Button>
@@ -110,20 +141,13 @@ const IndexedDBBalanced: FC = () => {
           <Button
             variant='contained'
             color='primary'
-            onClick={async () => {
-              const result = await opfsUserServiceAgnosticLayer.read();
-              console.log({ result });
-            }}
+            onClick={opfsDBUpdateUser}
           >
-            Select all Users
+            Update User
           </Button>
 
-          <Button
-            variant='contained'
-            color='primary'
-            //onClick={incrementAge}
-          >
-            Increment Age
+          <Button variant='contained' color='primary' onClick={opfsDBSelectAll}>
+            Select all Users
           </Button>
         </ButtonGroup>
       </Grid>

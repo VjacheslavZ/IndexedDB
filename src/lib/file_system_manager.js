@@ -15,15 +15,19 @@ class FileSystemManager {
     }
   }
 
-  async create(path, data, options) {
-    return this.#rootDir.writeFile(path, data, options);
+  async create({ store, record, options }) {
+    return this.#rootDir.writeFile(store, record, options);
+  }
+
+  async update(params) {
+    return this.create(params);
   }
 
   async createDirectory(path) {
     return this.#rootDir.createDirectory(path);
   }
 
-  async select() {
+  async select(where = {}) {
     try {
       return await this.#rootDir.listFiles();
     } catch (error) {
@@ -39,7 +43,7 @@ class FileSystemManager {
     }
   }
 
-  async deleteFile(path) {
+  async delete(path) {
     return this.#rootDir.deleteFile(path);
   }
 
